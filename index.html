@@ -656,13 +656,13 @@ function hat(ac, out, t, v) {
 function drumStep(ac, out, t, i) {
   const [, K, Sn, H] = groove(); i = i % K.length;
   const onBeat = i % spb() === 0;
-  if (K[i] === 'x') kick(ac, out, t, 1);
-  if (Sn[i] === 'x') snare(ac, out, t, onBeat ? 1 : 0.45);
-  if (H[i] === 'x') hat(ac, out, t, onBeat ? 1 : 0.6);
+  if (K[i] === 'x') voice(ac, out, 'kick', t, 0.9);
+  if (Sn[i] === 'x') voice(ac, out, 'snare', t, onBeat ? 0.85 : 0.3);
+  if (H[i] === 'x') voice(ac, out, 'hat', t, onBeat ? 0.6 : 0.35);
 }
 async function drumsToTrack() {
   if (S.tracks.length >= MAX_TRACKS) { toast('All 16 tracks are in use.'); return; }
-  ensureCtx();
+  ensureCtx(); await loadKit();
   const sr = ctx.sampleRate, bars = Math.max(8, Math.ceil(songEnd() / barDur())), per = S.beats * spb(), sd = beatDur() / spb();
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const oc = new OAC(1, Math.ceil((bars * barDur() + 0.5) * sr), sr);
@@ -735,6 +735,55 @@ async function stopTransport() {
 }
 
 
+
+/* ---------------- real drum kit (CC0 samples, Versilian Community Sample Library) ---------------- */
+const KIT = {map:null, loading:null};
+const KIT_GAIN = {kick:1.0, snare:0.8, rim:0.55, hat:0.42, hatloose:0.36, hatopen:0.32, ride:0.38, crash:0.42, tomhi:0.8, tomlo:0.85, shaker:0.5, tamb:0.4};
+function loadKit() {
+  if (KIT.map) return Promise.resolve(true);
+  if (!KIT.loading) KIT.loading = (async () => {
+    try {
+      const ab = await (await fetch('kit.bin')).arrayBuffer(), v = new DataView(ab);
+      if (String.fromCharCode(v.getUint8(0), v.getUint8(1), v.getUint8(2), v.getUint8(3)) !== 'JBKT') throw new Error('bad kit');
+      const hl = v.getUint32(4, true), h = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, 8, hl))), base = 8 + hl, map = {};
+      for (const e of h.samples) {
+        const i16 = new Int16Array(ab, base + e.off * 2, e.len), f = new Float32Array(e.len);
+        for (let i = 0; i < e.len; i++) f[i] = i16[i] / 32768;
+        (map[e.g] = map[e.g] || []).push({vel:e.vel, data:f, sr:h.sr, bufs:new WeakMap()});
+      }
+      KIT.map = map; return true;
+    } catch (e) { console.warn('JamByrd kit', e); KIT.loading = null; return false; }
+  })();
+  return KIT.loading;
+}
+function hit(ac, out, g, t, v) {
+  const list = KIT.map && KIT.map[g];
+  if (!list) return false;
+  const near = list.slice().sort((a, b) => Math.abs(a.vel - v) - Math.abs(b.vel - v));
+  const smp = near[near.length > 1 && Math.random() < 0.4 ? 1 : 0];         // round-robin between the closest layers
+  let b = smp.bufs.get(ac);
+  if (!b) { b = ac.createBuffer(1, smp.data.length, smp.sr); b.getChannelData(0).set(smp.data); smp.bufs.set(ac, b); }
+  const src = ac.createBufferSource(); src.buffer = b;
+  const gn = ac.createGain(); gn.gain.value = Math.min(1.8, v / Math.max(0.2, smp.vel)) * (KIT_GAIN[g] || 0.6);
+  src.connect(gn); gn.connect(out);
+  src.start(Math.max(t, ac.currentTime));
+  return true;
+}
+const SYNTH = {kick:(a, o, t, v) => kick(a, o, t, v), snare:(a, o, t, v) => snare(a, o, t, v), hat:(a, o, t, v) => hat(a, o, t, v),
+  hatloose:(a, o, t, v) => hat(a, o, t, v), hatopen:(a, o, t, v) => hat(a, o, t, v), ride:(a, o, t, v) => hat(a, o, t, 0.8 * v),
+  rim:(a, o, t, v) => rim(a, o, t, v), shaker:(a, o, t, v) => shaker(a, o, t, v), tamb:(a, o, t, v) => shaker(a, o, t, v),
+  crash:(a, o, t, v) => crash(a, o, t, v), tomhi:(a, o, t, v) => tom(a, o, t, v, 0.1), tomlo:(a, o, t, v) => tom(a, o, t, v, 0.9)};
+/* a human drummer: snare sits a hair behind the beat, hats and shaker breathe, no two hits alike */
+function voice(ac, out, k, t, v, p) {
+  if (k === 'tom') k = (p || 0) < 0.5 ? 'tomhi' : 'tomlo';
+  const r = a => (Math.random() * 2 - 1) * a;
+  if (k === 'snare' || k === 'rim' || k === 'tamb') t += 0.007 + r(0.004);
+  else if (k === 'kick') t += r(0.003);
+  else if (k !== 'crash') t += r(0.006);
+  v = Math.max(0.05, Math.min(1, v * (0.88 + Math.random() * 0.2)));
+  if (!hit(ac, out, k, t, v)) (SYNTH[k] || SYNTH.hat)(ac, out, Math.max(t, ac.currentTime), v);
+}
+
 /* ---------------- auto drums: follow the recorded song ---------------- */
 function rim(ac, out, t, v) {
   const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = 1700; o.connect(env(ac, out, t, 0.35 * v, 0.03)); o.start(t); o.stop(t + 0.05);
@@ -755,7 +804,6 @@ function crash(ac, out, t, v) {
   const n = ac.createBufferSource(); n.buffer = noiseBuf(ac); n.loop = true; const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 4500;
   n.connect(f); f.connect(env(ac, out, t, 0.3 * v, 1.4)); n.start(t); n.stop(t + 1.5);
 }
-const VOICES = {kick:(a, o, t, v) => kick(a, o, t, v), snare:snare, hat:hat, rim:rim, shaker:shaker, tom:tom, crash:crash};
 const isAutoTrack = t => t.name === 'Auto drums';
 async function analyzeSong() {
   const src = S.tracks.filter(t => t.clip && t.clip.data.length && !t.mute && !isAutoTrack(t));
@@ -807,26 +855,29 @@ function drumPlan(an, x, y) {
       const t = b * bar + s2 * sd, on = an.onset[b * per + s2] || 0;
       if (s2 >= fillFrom) {
         const k = s2 - fillFrom, stepEvery = y > 0.75 ? 1 : 2;
-        if (k % stepEvery === 0) ev.push({t, k:folk ? (k % 2 ? 'rim' : 'tom') : (k < fillLen / 2 ? 'snare' : 'tom'), v:dyn * (0.65 + 0.35 * k / fillLen), p:k / fillLen});
+        if (k % stepEvery === 0) ev.push({t, k:folk ? (k % 2 ? 'rim' : 'tom') : (k < fillLen / 3 ? 'snare' : 'tom'), v:dyn * (0.6 + 0.35 * k / fillLen), p:k / fillLen});
         continue;
       }
-      if (crashHere && s2 === 0) ev.push({t, k:'crash', v:dyn});
+      if (crashHere && s2 === 0) ev.push({t, k:'crash', v:dyn * 0.8});
       if (kicks.includes(s2)) { if (!(folk && y < 0.25 && s2 !== 0 && S.beats === 4 && x < 0.2)) ev.push({t, k:'kick', v:dyn * (folk ? 0.7 : 1)}); }
       else if (y > 0.15 && on > 1 - y * 0.7 && !snares.includes(s2) && s2 % (y > 0.6 ? 1 : 2) === 0) ev.push({t, k:'kick', v:dyn * 0.75});
-      if (snares.includes(s2)) ev.push({t, k:folk ? 'rim' : 'snare', v:dyn * (folk ? 0.8 : 1)});
+      if (snares.includes(s2)) { ev.push({t, k:folk ? 'rim' : 'snare', v:dyn * (folk ? 0.8 : 0.9)}); if (x < 0.3 || (folk && e > 0.6)) ev.push({t, k:'tamb', v:dyn * 0.8}); }
       else if (!folk && y > 0.55 && on > 0.45 && s2 % 2 === 1) ev.push({t, k:'snare', v:0.25 * dyn});
-      if (s2 % hatStep === 0) ev.push({t, k:folk ? 'shaker' : 'hat', v:dyn * (s2 % spb() === 0 ? 1 : 0.6) * (x > 0.85 && e > 0.75 ? 1.25 : 1)});
+      if (s2 % hatStep === 0) {
+        const loud = e > 0.75, cym = folk ? 'shaker' : (x > 0.55 && loud ? (y > 0.5 ? 'ride' : 'hatloose') : 'hat');
+        ev.push({t, k:cym, v:dyn * (s2 % spb() === 0 ? 0.75 : 0.45)});
+      }
     }
   }
-  if (an.bars > 0 && an.energy[an.bars - 1] >= 0.08 && x > 0.3) { ev.push({t:an.bars * bar, k:'kick', v:0.9}); ev.push({t:an.bars * bar, k:'crash', v:0.9}); }
+  if (an.bars > 0 && an.energy[an.bars - 1] >= 0.08 && x > 0.3) { ev.push({t:an.bars * bar, k:'kick', v:0.85}); ev.push({t:an.bars * bar, k:'crash', v:0.8}); }
   return ev;
 }
-function playEvents(ac, out, ev, offset) { for (const e of ev) VOICES[e.k](ac, out, e.t + offset, e.v, e.p); }
+function playEvents(ac, out, ev, offset) { for (const e of ev) voice(ac, out, e.k, e.t + offset, e.v, e.p); }
 let previewTimer = null;
 async function previewAutoDrums(btn) {
   ensureCtx();
   if (playing) await stopTransport();
-  btn.disabled = true; btn.textContent = 'Listening to the song…';
+  btn.disabled = true; btn.textContent = 'Listening to the song…'; await loadKit();
   const an = await analyzeSong(), ev = drumPlan(an, S.autoX, S.autoY);
   let from = 0, best = -1;
   for (let b = 0; b < an.bars; b++) { const sc = (an.energy[b] || 0) + (an.energy[b + 1] || 0); if (sc > best) { best = sc; from = b; } }
@@ -844,7 +895,7 @@ async function addAutoDrums() {
   if (playing) await stopTransport();
   let tr = S.tracks.find(isAutoTrack);
   if (!tr && S.tracks.length >= MAX_TRACKS) { toast('All 16 tracks are in use. Delete one to add drums.'); return; }
-  toast('Writing drums to fit your song…', 6000);
+  toast('Writing drums to fit your song…', 6000); await loadKit();
   const an = await analyzeSong(), ev = drumPlan(an, S.autoX, S.autoY), sr = ctx.sampleRate;
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   const oc = new OAC(1, Math.ceil((an.bars * barDur() + 2) * sr), sr);
@@ -1540,12 +1591,12 @@ function tempoMenu() {
       seg('Drum groove', keys.map(k => [k, g[k][0]]), () => S.drumStyle, v => S.drumStyle = v);
       const pv = document.createElement('div'); pv.className = 'row';
       const hear = document.createElement('button'); hear.textContent = '▶ Hear 1 bar';
-      hear.onclick = () => { ensureCtx(); const sd = beatDur() / spb(), per = S.beats * spb(), t = ctx.currentTime + 0.05; for (let i = 0; i < per; i++) drumStep(ctx, metroOut, t + i * sd, i); };
+      hear.onclick = async () => { ensureCtx(); await loadKit(); const sd = beatDur() / spb(), per = S.beats * spb(), t = ctx.currentTime + 0.05; for (let i = 0; i < per; i++) drumStep(ctx, metroOut, t + i * sd, i); };
       const add = document.createElement('button'); add.textContent = '+ Add drums as a track';
       add.onclick = () => { closeSheet(); drumsToTrack(); };
       pv.append(hear, add); sh.appendChild(pv);
       item(sh, '🥁 Auto drums that follow the song…', 'Folk ↔ rock and simple ↔ complex pad', () => autoDrumsMenu());
-      const n = document.createElement('p'); n.className = 'note'; n.textContent = 'Drums play while you record and play back. “Add drums as a track” puts them in the song so they’re in exports and everyone hears them.'; sh.appendChild(n);
+      const n = document.createElement('p'); n.className = 'note'; n.textContent = 'Real recorded drums, played loose like a person. They play while you record and play back. “Add drums as a track” puts them in the song so they’re in exports and everyone hears them.'; sh.appendChild(n);
     }
     const d = document.createElement('div'); d.className = 'row'; const db = document.createElement('button'); db.textContent = 'Done'; db.onclick = closeSheet; d.appendChild(db); sh.appendChild(d);
   });
@@ -1645,6 +1696,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.se
 window.addEventListener('online', () => { scheduleSync(50); refreshSoon(500); });
 window.addEventListener('offline', () => { if (S.songId) setCloud('offline'); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.songId) refreshSoon(300); });
+setTimeout(() => loadKit(), 1500);
 (async () => {
   await loadSaved();
   syncControls(); renderTracks();
