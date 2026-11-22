@@ -1,5 +1,5 @@
-// JamPass service worker: network first, cached copy when offline.
-const CACHE = 'jampass-v1';
+// JamByrd service worker: network first, cached copy when offline.
+const CACHE = 'jambyrd-v2';
 const FILES = ['./', './index.html', './rec-worklet.js', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {

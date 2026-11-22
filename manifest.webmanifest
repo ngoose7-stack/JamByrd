@@ -1,7 +1,7 @@
 {
-  "name": "JamPass",
-  "short_name": "JamPass",
-  "description": "Multitrack recorder for jamming with friends",
+  "name": "JamByrd",
+  "short_name": "JamByrd",
+  "description": "Record songs in layers and jam with friends",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

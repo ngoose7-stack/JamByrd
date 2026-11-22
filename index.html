@@ -7,11 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="JamPass">
+<meta name="apple-mobile-web-app-title" content="JamByrd">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<title>JamPass</title>
+<title>JamByrd</title>
 <style>
 :root{--bg:#121316;--panel:#1b1d22;--panel2:#25282f;--line:#31353d;--text:#ece9e2;--dim:#8d929b;--rec:#ff4d4d;--amber:#f2b84b;--ok:#5ad19a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -108,19 +108,30 @@ details.help li{margin:5px 0}
 #installTip b{color:var(--amber)}
 #installTip button{flex:none;min-height:34px}
 .primary{background:var(--amber);color:#111;border-color:var(--amber);font-weight:650}
+.pill{margin-left:8px;font-size:10px;letter-spacing:.03em;text-transform:none;color:var(--dim);font-weight:600}
+.pill.ok{color:var(--ok)}.pill.warn{color:var(--amber)}.pill.here{color:var(--rec)}
+.linkBox{width:100%;height:42px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:0 10px;margin:6px 0;-webkit-user-select:text;user-select:text}
+.pad{position:relative;height:230px;border-radius:12px;margin:8px 0;touch-action:none;cursor:pointer;overflow:hidden;
+  background:linear-gradient(to right,rgba(118,176,65,.18),rgba(228,87,46,.22)),linear-gradient(to top,transparent,rgba(199,125,255,.18)),#15171b;border:1px solid var(--line)}
+.pad:before,.pad:after{content:'';position:absolute;background:#ffffff18}.pad:before{left:50%;top:0;bottom:0;width:1px}.pad:after{top:50%;left:0;right:0;height:1px}
+.pad .q{position:absolute;font-size:11px;color:#ffffff70;pointer-events:none}
+.pad .ax{position:absolute;font-size:12px;font-weight:700;color:#ffffffc0;pointer-events:none;text-transform:uppercase;letter-spacing:.06em}
+.padDot{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 6px rgba(242,184,75,.25);pointer-events:none}
+.songRow{display:flex;gap:6px;align-items:stretch}.songRow .item{flex:1}.songRow .x{flex:none;margin:6px 0;width:44px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div style="flex:1;min-width:0">
-      <div class="logo">JamPass</div>
+      <div class="logo">JamByrd<span id="cloudPill" class="pill"></span><span id="herePill" class="pill here"></span></div>
       <input id="songName" value="Untitled song" aria-label="Song name" maxlength="40">
     </div>
+    <button id="shareBtn" class="primary">Share</button>
     <button id="menuBtn" aria-label="Menu" style="font-size:20px">⋯</button>
   </header>
 
-  <div id="installTip"><div style="flex:1">Install JamPass: tap <b>Share</b> then <b>Add to Home Screen</b>. It opens full-screen, and your songs won’t get cleared.</div><button id="tipX" aria-label="Dismiss">✕</button></div>
+  <div id="installTip"><div style="flex:1">Install JamByrd: tap <b>Share</b> then <b>Add to Home Screen</b>. It opens full-screen, and your songs won’t get cleared.</div><button id="tipX" aria-label="Dismiss">✕</button></div>
   <div class="transport">
     <div class="trow">
       <div class="clock" id="clock"><span id="clockT">0:00.0</span><small id="clockB">Bar 1 · Beat 1</small></div>
@@ -136,7 +147,7 @@ details.help li{margin:5px 0}
   </div>
 
   <div id="tracks"></div>
-  <div class="addRow"><button id="addTrack">+ Add track</button></div>
+  <div class="addRow"><button id="addTrack">+ Add track</button><button id="autoBtn">🥁 Auto drums</button></div>
 
   <details class="help" id="help">
     <summary>How to record &amp; jam with friends</summary>
@@ -155,9 +166,9 @@ details.help li{margin:5px 0}
     </ul>
     <h4>Friends somewhere else</h4>
     <ol>
-      <li>Menu → <b>Send a guide mix</b> and text it to your friend with this app's link.</li>
-      <li>They open the app, import the guide mix onto track 1, record their part on track 2, then use the track's <b>⋯ → Export this track</b> and send it back.</li>
-      <li>You tap <b>⋯ → Import audio</b> on any track. Exports start at 0:00, so it lines up with your song. Use Nudge to fine-tune.</li>
+      <li>Tap <b>Share</b> and send the link. Every song is saved online automatically once something is recorded.</li>
+      <li>Your friend opens the link and sees the same song with everything already recorded. They tap <b>+ Add track</b> (or <b>R</b> on an empty track) and record their layer.</li>
+      <li>New takes show up live for everyone who has the song open (the red “● 2 here” shows who's in). Find all your songs under <b>⋯ → My songs</b>.</li>
     </ol>
     <h4>If takes sound late or early</h4>
     <p class="note" style="margin:4px 0">Open Settings → <b>Calibrate</b> once on each phone (headphones off, volume up). Avoid Bluetooth headphones while recording; they add a lot of delay.</p>
@@ -180,9 +191,10 @@ const colorOf = tr => tr.inst && tr.inst !== 'none' && INST[tr.inst] ? INST[tr.i
 const PEAKS_PER_SEC = 100;
 const LEAD = 0.1;
 
-const S = {name:'Untitled song', bpm:100, beats:4, metro:true, countIn:1, metroVol:0.6, latencyMs:null, recMode:'replace', monitor:false, deviceId:'', tracks:[]};
+const S = {autoX:0.55, autoY:0.35, songId:null, guide:'click', drumStyle:'rock', name:'Untitled song', bpm:100, beats:4, metro:true, countIn:1, metroVol:0.6, latencyMs:null, recMode:'replace', monitor:false, deviceId:'', tracks:[]};
 let pos = 0, playing = false, recording = false, playFrom = 0;
-const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const rid = n => { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789', b = crypto.getRandomValues(new Uint8Array(n)); let r = ''; for (const x of b) r += a[x % a.length]; return r; };
+const uid = () => rid(14);
 
 function newTrack() {
   return {id:uid(), name:'', player:'', inst:'none', vol:0.8, pan:0, mute:false, solo:false, armed:false, clip:null};
@@ -230,7 +242,7 @@ const IDB = {
   open() {
     return new Promise(res => {
       if (!window.indexedDB) return res(null);
-      let r; try { r = indexedDB.open('jampass', 1); } catch (e) { return res(null); }
+      let r; try { r = indexedDB.open('jambyrd', 1); } catch (e) { return res(null); }
       r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('meta'); d.createObjectStore('audio'); };
       r.onsuccess = () => { this.db = r.result; res(this.db); };
       r.onerror = () => res(null);
@@ -252,37 +264,312 @@ const IDB = {
   clear(s) { return this.tx(s, 'readwrite', st => st.clear()); }
 };
 function metaObj() {
-  return {v:1, name:S.name, bpm:S.bpm, beats:S.beats, metro:S.metro, countIn:S.countIn, metroVol:S.metroVol,
+  return {v:2, autoX:S.autoX, autoY:S.autoY, songId:S.songId, guide:S.guide, drumStyle:S.drumStyle,
+    pending:{meta:Cloud.dirtyMeta, tracks:[...Cloud.dirtyTracks], deleted:[...Cloud.deleted]},
+    name:S.name, bpm:S.bpm, beats:S.beats, metro:S.metro, countIn:S.countIn, metroVol:S.metroVol,
     latencyMs:S.latencyMs, recMode:S.recMode, deviceId:S.deviceId,
     tracks:S.tracks.map(t => ({id:t.id, name:t.name, player:t.player, inst:t.inst, vol:t.vol, pan:t.pan, mute:t.mute, solo:t.solo,
-      clip:t.clip ? {id:t.clip.id, start:t.clip.start, sr:t.clip.sr} : null}))};
+      clip:t.clip ? {id:t.clip.id, start:t.clip.start, sr:t.clip.sr, remote:!!t.clip.remote, path:t.clip.path || null} : null}))};
 }
 let metaTimer;
-function saveMeta() { clearTimeout(metaTimer); metaTimer = setTimeout(() => IDB.put('meta', 'song', metaObj()), 350); }
+function saveMeta() { clearTimeout(metaTimer); metaTimer = setTimeout(() => { IDB.put('meta', 'song', metaObj()); if (S.songId) addToLibrary(); }, 350); }
 let persistAsked = false;
 function applyMeta(m) {
   S.name = m.name || 'Untitled song'; S.bpm = m.bpm || 100; S.beats = m.beats || 4; S.metro = m.metro !== false;
   S.countIn = m.countIn ?? 1; S.metroVol = m.metroVol ?? 0.6; S.latencyMs = m.latencyMs ?? null;
   S.recMode = m.recMode || 'replace'; if (m.deviceId !== undefined) S.deviceId = m.deviceId || '';
+  S.guide = m.guide === 'drums' ? 'drums' : 'click'; S.drumStyle = m.drumStyle || 'rock';
+  S.autoX = m.autoX ?? 0.55; S.autoY = m.autoY ?? 0.35;
 }
 async function loadSaved() {
   await IDB.open();
   const m = await IDB.get('meta', 'song');
   if (m && Array.isArray(m.tracks) && m.tracks.length) {
     applyMeta(m);
+    S.songId = m.songId || null;
+    if (m.pending) { Cloud.dirtyMeta = !!m.pending.meta; (m.pending.tracks || []).forEach(id => Cloud.dirtyTracks.add(id)); (m.pending.deleted || []).forEach(id => Cloud.deleted.add(id)); }
     S.tracks = [];
     for (const mt of m.tracks.slice(0, MAX_TRACKS)) {
       const t = Object.assign(newTrack(), mt, {armed:false, clip:null});
       if (!INST[t.inst]) t.inst = 'none';
       if (mt.clip) {
         const d = await IDB.get('audio', mt.clip.id);
-        if (d && d.length) t.clip = {id:mt.clip.id, start:mt.clip.start, sr:mt.clip.sr, data:d, peaks:computePeaks(d, mt.clip.sr)};
+        if (d && d.length) t.clip = {id:mt.clip.id, start:mt.clip.start, sr:mt.clip.sr, data:d, peaks:computePeaks(d, mt.clip.sr), remote:!!mt.clip.remote, path:mt.clip.path || null};
       }
       S.tracks.push(t);
     }
   } else {
     S.tracks = [0, 1, 2, 3].map(() => newTrack());
   }
+}
+
+
+/* ---------------- cloud (Supabase): songs online, share links, live sync ---------------- */
+const SUPA_URL = 'https://exqulkpuolsrarrslrwt.supabase.co', SUPA_KEY = 'sb_publishable_IMVSJdNW_7p7ZI8SIejcNQ__Sm71Skf';
+const cloudConfigured = () => /^https:\/\//.test(SUPA_URL);
+const Cloud = {sb:null, loading:null, chan:null, chanId:null, dirtyMeta:false, dirtyTracks:new Set(), deleted:new Set(),
+  busy:false, timer:null, refreshTimer:null, pendingRemote:false, state:'local'};
+function loadSupabase() {
+  if (Cloud.sb) return Promise.resolve(Cloud.sb);
+  if (!cloudConfigured()) return Promise.reject(new Error('not configured'));
+  if (!Cloud.loading) Cloud.loading = new Promise((res, rej) => {
+    const go = () => { try { Cloud.sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {auth:{persistSession:false, autoRefreshToken:false}}); res(Cloud.sb); } catch (e) { Cloud.loading = null; rej(e); } };
+    if (window.supabase) return go();
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+    sc.onload = go; sc.onerror = () => { sc.remove(); Cloud.loading = null; rej(new Error('offline')); };
+    document.head.appendChild(sc);
+  });
+  return Cloud.loading;
+}
+function setCloud(state) {
+  Cloud.state = state;
+  const p = $('#cloudPill'); if (!p) return;
+  p.textContent = {local:'', saving:'Saving…', saved:'☁ Saved', offline:'Offline · will sync', error:'Not saved · retrying'}[state] || '';
+  p.className = 'pill' + (state === 'saved' ? ' ok' : (state === 'error' || state === 'offline') ? ' warn' : '');
+}
+function setHere(n) { const h = $('#herePill'); if (h) h.textContent = n > 1 ? `● ${n} here` : ''; }
+const shareUrl = () => location.origin + location.pathname + '?s=' + S.songId;
+const hasWork = () => Cloud.dirtyMeta || Cloud.dirtyTracks.size > 0 || Cloud.deleted.size > 0;
+function songRow() { return {name:S.name, bpm:S.bpm, beats:S.beats, count_in:S.countIn, guide:S.guide, drum_style:S.drumStyle}; }
+function trackRow(tr) {
+  const c = tr.clip && tr.clip.remote ? tr.clip : null;
+  return {id:tr.id, position:S.tracks.indexOf(tr), name:tr.name || '', player:tr.player || '', inst:tr.inst, vol:tr.vol, pan:tr.pan,
+    clip_path:c ? c.path : null, clip_start:c ? c.start : null, clip_sr:c ? c.sr : null, clip_len:c ? c.data.length : null};
+}
+function scheduleSync(ms = 700) { if (!S.songId) return; clearTimeout(Cloud.timer); Cloud.timer = setTimeout(flush, ms); }
+function markSong() { if (!S.songId) return; Cloud.dirtyMeta = true; saveMeta(); scheduleSync(); }
+function markTrack(tr) { if (!S.songId || !tr) return; Cloud.dirtyTracks.add(tr.id); saveMeta(); scheduleSync(); }
+function markAllTracks() { S.tracks.forEach(t => Cloud.dirtyTracks.add(t.id)); }
+async function uploadClip(clip, song) {
+  const sb = await loadSupabase(), path = song + '/' + clip.id + '.wav';
+  const {error} = await sb.storage.from('takes').upload(path, encodeWav([clip.data], clip.sr), {contentType:'audio/wav', upsert:false, cacheControl:'31536000'});
+  if (error && !/exist|duplicate/i.test(error.message || '')) throw error;
+  clip.remote = true; clip.path = path;
+}
+async function flush() {
+  if (!S.songId || !cloudConfigured() || !hasWork()) return;
+  if (Cloud.busy) { scheduleSync(); return; }
+  if (!navigator.onLine) { setCloud('offline'); return; }
+  Cloud.busy = true; setCloud('saving');
+  const song = S.songId; let ok = false;
+  try {
+    const sb = await loadSupabase();
+    if (Cloud.dirtyMeta) { Cloud.dirtyMeta = false; const {error} = await sb.rpc('jb_save_song', {p_id:song, p:songRow()}); if (error) throw error; }
+    for (const id of [...Cloud.deleted]) { const {error} = await sb.rpc('jb_delete_track', {p_song:song, p_track:id}); if (error) throw error; Cloud.deleted.delete(id); }
+    for (const id of [...Cloud.dirtyTracks]) {
+      Cloud.dirtyTracks.delete(id);
+      const tr = S.tracks.find(t => t.id === id); if (!tr) continue;
+      if (tr.clip && !tr.clip.remote) await uploadClip(tr.clip, song);
+      const {error} = await sb.rpc('jb_upsert_track', {p_song:song, p:trackRow(tr)}); if (error) throw error;
+    }
+    ok = true;
+  } catch (e) {
+    console.warn('JamByrd sync', e);
+    if (song === S.songId) { Cloud.dirtyMeta = true; markAllTracks(); setCloud(navigator.onLine ? 'error' : 'offline'); clearTimeout(Cloud.timer); Cloud.timer = setTimeout(flush, 8000); }
+  } finally {
+    Cloud.busy = false; saveMeta();
+    if (ok && song === S.songId) {
+      sendChanged();
+      if (hasWork()) scheduleSync(100); else setCloud('saved');
+      if (Cloud.pendingRemote && !hasWork() && !recording) { Cloud.pendingRemote = false; refreshSoon(); }
+    }
+  }
+}
+async function waitIdle(ms = 30000) {
+  const end = Date.now() + ms; clearTimeout(Cloud.timer);
+  while (Date.now() < end) {
+    if (!Cloud.busy && !hasWork()) return true;
+    if (!Cloud.busy) { await flush(); if (Cloud.state === 'error' || Cloud.state === 'offline') return false; }
+    else await new Promise(r => setTimeout(r, 200));
+  }
+  return false;
+}
+function goOnline() {
+  if (S.songId || !cloudConfigured()) return !!S.songId;
+  S.songId = rid(20); Cloud.dirtyMeta = true; markAllTracks();
+  history.replaceState(null, '', '?s=' + S.songId);
+  saveMeta(); joinChannel(); scheduleSync(50);
+  return true;
+}
+async function joinChannel() {
+  if (!S.songId || Cloud.chanId === S.songId) return;
+  try {
+    const sb = await loadSupabase();
+    leaveChannel();
+    Cloud.chanId = S.songId; setHere(1);
+    const ch = sb.channel('jb-' + S.songId, {config:{broadcast:{self:false}, presence:{key:rid(10)}}});
+    ch.on('broadcast', {event:'changed'}, () => refreshSoon());
+    ch.on('broadcast', {event:'status'}, ({payload}) => { if (payload && payload.text) toast(String(payload.text).slice(0, 90)); });
+    ch.on('presence', {event:'sync'}, () => setHere(Object.keys(ch.presenceState()).length));
+    ch.subscribe(st => { if (st === 'SUBSCRIBED') ch.track({at:Date.now()}).catch(() => {}); });
+    Cloud.chan = ch;
+  } catch (e) { Cloud.chanId = null; }
+}
+function leaveChannel() {
+  if (Cloud.chan && Cloud.sb) { try { Cloud.sb.removeChannel(Cloud.chan); } catch (e) {} }
+  Cloud.chan = null; Cloud.chanId = null; setHere(1);
+}
+function sendChanged() { if (Cloud.chan) Cloud.chan.send({type:'broadcast', event:'changed', payload:{}}).catch(() => {}); }
+function sendStatus(text) { if (Cloud.chan) Cloud.chan.send({type:'broadcast', event:'status', payload:{text}}).catch(() => {}); }
+function refreshSoon(ms = 400) { clearTimeout(Cloud.refreshTimer); Cloud.refreshTimer = setTimeout(refreshFromCloud, ms); }
+async function fetchSong(id) {
+  const sb = await loadSupabase();
+  const {data, error} = await sb.rpc('jb_get_song', {p_id:id});
+  if (error) throw error;
+  return data;
+}
+async function refreshFromCloud() {
+  if (!S.songId || !cloudConfigured()) return;
+  if (recording || Cloud.busy || hasWork()) { Cloud.pendingRemote = true; if (!recording) scheduleSync(100); return; }
+  const id = S.songId;
+  try { const data = await fetchSong(id); if (data && id === S.songId && !recording) await applyRemote(data); }
+  catch (e) { console.warn('JamByrd refresh', e); }
+}
+function parseWav(ab) {
+  const v = new DataView(ab); let p = 12, fmt = null;
+  while (p + 8 <= v.byteLength) {
+    const id = String.fromCharCode(v.getUint8(p), v.getUint8(p + 1), v.getUint8(p + 2), v.getUint8(p + 3)), len = v.getUint32(p + 4, true);
+    if (id === 'fmt ') fmt = {ch:v.getUint16(p + 10, true), sr:v.getUint32(p + 12, true), bits:v.getUint16(p + 22, true)};
+    if (id === 'data' && fmt && fmt.bits === 16) {
+      const n = Math.floor(Math.min(len, v.byteLength - p - 8) / 2 / fmt.ch), d = new Float32Array(n);
+      for (let i = 0, o = p + 8; i < n; i++, o += 2 * fmt.ch) d[i] = v.getInt16(o, true) / 32768;
+      return {data:d, sr:fmt.sr};
+    }
+    p += 8 + len + (len & 1);
+  }
+  return null;
+}
+async function fetchTake(path, cid, sr) {
+  const cached = await IDB.get('audio', cid);
+  if (cached && cached.length && sr) return {data:cached, sr};
+  try {
+    const r = await fetch(SUPA_URL + '/storage/v1/object/public/takes/' + path.split('/').map(encodeURIComponent).join('/'));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const a = parseWav(await r.arrayBuffer());
+    if (!a) return null;
+    IDB.put('audio', cid, a.data);
+    return a;
+  } catch (e) { console.warn('JamByrd take', e); return null; }
+}
+async function applyRemote(data) {
+  const sg = data.song || {};
+  if (!Cloud.dirtyMeta) {
+    S.name = sg.name || 'Untitled song'; S.bpm = sg.bpm || 100; S.beats = sg.beats || 4; S.countIn = sg.count_in ?? 1;
+    S.guide = sg.guide === 'drums' ? 'drums' : 'click'; S.drumStyle = sg.drum_style || 'rock';
+  }
+  const remote = data.tracks || [], ids = new Set(remote.map(t => t.id)), next = [];
+  const needs = remote.filter(rt => rt.clip_path && !S.tracks.some(t => t.clip && t.clip.path === rt.clip_path)).length;
+  if (needs) toast(`Loading ${needs} take${needs > 1 ? 's' : ''}…`, 6000);
+  for (const rt of remote) {
+    let tr = S.tracks.find(t => t.id === rt.id);
+    if (!tr) { tr = newTrack(); tr.id = rt.id; }
+    if (!Cloud.dirtyTracks.has(tr.id) && !(recording && tr === recTrack)) {
+      tr.name = rt.name || ''; tr.player = rt.player || ''; tr.inst = INST[rt.inst] ? rt.inst : 'none';
+      tr.vol = rt.vol ?? 0.8; tr.pan = rt.pan ?? 0;
+      if (rt.clip_path) {
+        const cid = rt.clip_path.split('/').pop().replace(/\.wav$/, '');
+        if (!tr.clip || tr.clip.id !== cid) {
+          const a = await fetchTake(rt.clip_path, cid, rt.clip_sr);
+          if (a) { if (tr.clip) IDB.del('audio', tr.clip.id); tr.clip = {id:cid, start:rt.clip_start || 0, sr:a.sr, data:a.data, peaks:computePeaks(a.data, a.sr), remote:true, path:rt.clip_path}; }
+        } else tr.clip.start = rt.clip_start ?? tr.clip.start;
+      } else if (tr.clip && tr.clip.remote) { IDB.del('audio', tr.clip.id); tr.clip = null; }
+    }
+    next.push(tr);
+  }
+  for (const t of S.tracks) {
+    if (ids.has(t.id)) continue;
+    if (Cloud.dirtyTracks.has(t.id) || t === recTrack || (t.clip && !t.clip.remote)) next.push(t);
+    else { t.armed = false; try { t.g && t.g.disconnect(); t.p && t.p.disconnect(); } catch (e) {} if (t.clip) IDB.del('audio', t.clip.id); }
+  }
+  const structural = next.length !== S.tracks.length || next.some((t, i) => t !== S.tracks[i]);
+  S.tracks = next;
+  if (!S.tracks.some(t => t.armed) && mic && !recording) closeMic();
+  if (ctx) S.tracks.forEach(nodesFor);
+  S.tracks.forEach(applyMix);
+  syncControls();
+  const typing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#tracks');
+  if (structural && !typing) renderTracks(); else { refreshTrackInputs(); drawAll(); }
+  saveMeta();
+}
+async function getLibrary() { return (await IDB.get('meta', 'library')) || []; }
+async function addToLibrary() {
+  if (!S.songId) return;
+  const lib = (await getLibrary()).filter(x => x.id !== S.songId);
+  lib.unshift({id:S.songId, name:S.name || 'Untitled song', at:Date.now()});
+  await IDB.put('meta', 'library', lib.slice(0, 200));
+}
+async function openCloudSong(id, quiet) {
+  if (!cloudConfigured()) return false;
+  if (id === S.songId) { joinChannel(); refreshSoon(10); return true; }
+  if (playing) await stopTransport();
+  if (S.tracks.some(t => t.clip) && !S.songId) goOnline();
+  if (S.songId && !(await waitIdle())) { toast('Couldn’t save the current song online, so it’s still open. Check your connection and try again.', 5000); return false; }
+  toast('Opening song…', 8000);
+  let data;
+  try { data = await fetchSong(id); } catch (e) { toast('Couldn’t reach the JamByrd server. Check your connection.', 5000); return false; }
+  if (!data) { toast('That song link doesn’t work. It may have been deleted.', 5000); return false; }
+  S.tracks.forEach(t => { t.armed = false; try { t.g && t.g.disconnect(); t.p && t.p.disconnect(); } catch (e) {} });
+  closeMic(); leaveChannel();
+  await IDB.clear('audio');
+  Cloud.dirtyMeta = false; Cloud.dirtyTracks.clear(); Cloud.deleted.clear(); Cloud.pendingRemote = false;
+  S.songId = id; S.tracks = []; pos = 0; playFrom = 0;
+  await applyRemote(data);
+  renderTracks();
+  history.replaceState(null, '', '?s=' + id);
+  setCloud('saved'); joinChannel(); addToLibrary();
+  if (!quiet) toast(`Opened “${S.name}”`);
+  return true;
+}
+async function shareSong() {
+  if (!cloudConfigured()) { toast('Online saving isn’t set up yet.'); return; }
+  goOnline();
+  const url = shareUrl();
+  sheet('Share “' + (S.name || 'Untitled song') + '”', sh => {
+    const p = document.createElement('p');
+    p.textContent = 'Anyone with this link can listen and record their own layers. New takes show up live for everyone who has the song open.';
+    sh.appendChild(p);
+    const box = document.createElement('input'); box.readOnly = true; box.value = url; box.className = 'linkBox'; sh.appendChild(box);
+    if (navigator.share) item(sh, 'Share link…', 'Messages, AirDrop, email…', async () => {
+      try { await navigator.share({title:S.name, text:`Jam on “${S.name}” with me in JamByrd:`, url}); } catch (e) {}
+    }, 'primary');
+    item(sh, 'Copy link', null, async () => {
+      try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch (e) { box.focus(); box.select(); toast('Select the link above and copy it'); }
+    });
+    const n = document.createElement('p'); n.className = 'note';
+    n.textContent = Cloud.state === 'saved' ? 'Everything is saved online.' : 'Uploading your takes now; friends will see them in a moment.';
+    sh.appendChild(n);
+  });
+}
+async function songsMenu() {
+  const lib = await getLibrary();
+  sheet('My songs', sh => {
+    item(sh, '+ Start a new song', null, () => { closeSheet(); newSong(); }, 'primary');
+    if (!lib.length) { const n = document.createElement('p'); n.className = 'note'; n.textContent = 'Songs you record, or open from a friend’s link, show up here.'; sh.appendChild(n); }
+    for (const sg of lib) {
+      const row = document.createElement('div'); row.className = 'songRow';
+      const cur = sg.id === S.songId;
+      const b = item(row, (cur ? '▶ ' : '') + (sg.name || 'Untitled song'), cur ? 'Open now' : new Date(sg.at).toLocaleDateString(undefined, {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}), async () => { closeSheet(); await openCloudSong(sg.id); });
+      if (!cur) {
+        const x = document.createElement('button'); x.className = 'x'; x.textContent = '✕'; x.title = 'Remove from this list';
+        x.onclick = async () => { await IDB.put('meta', 'library', (await getLibrary()).filter(y => y.id !== sg.id)); row.remove(); toast('Removed from this list. The song’s link still works.'); };
+        row.appendChild(x);
+      }
+      sh.appendChild(row);
+    }
+    const n = document.createElement('p'); n.className = 'note';
+    n.textContent = 'Songs are saved online. This list lives on this device; open a song’s link on another phone to add it there.';
+    sh.appendChild(n);
+  });
+}
+function refreshTrackInputs() {
+  for (const t of S.tracks) {
+    if (!t.el) continue;
+    const set = (el, v) => { if (el && el !== document.activeElement && el.value != v) el.value = v; };
+    set(t.el.name, t.name); set(t.el.player, t.player); set(t.el.sel, t.inst); set(t.el.vol, t.vol); set(t.el.pan, t.pan);
+    t.el.root.style.setProperty('--c', colorOf(t));
+  }
+  updateTrackStates();
 }
 
 /* ---------------- audio engine ---------------- */
@@ -330,7 +617,63 @@ function clipEnd(c) { return c.start + c.data.length / c.sr; }
 function songEnd() { let e = 0; for (const t of S.tracks) if (t.clip) e = Math.max(e, clipEnd(t.clip)); return e; }
 function curPos() { return (playing && ctx) ? ctx.currentTime - t0 : pos; }
 
-let t0 = 0, sources = [], schedTimer = null, beatIdx = 0;
+let t0 = 0, sources = [], schedTimer = null, stepIdx = 0, guideMuted = false;
+/* drum grooves: kick / snare / hat on a 16th-note grid (8ths in 6/8) */
+const GROOVES = {
+  4: {rock:['Rock', 'x.......x.x.....', '....x.......x...', 'x.x.x.x.x.x.x.x.'],
+      pop:['Four on the floor', 'x...x...x...x...', '....x.......x...', '..x...x...x...x.'],
+      funk:['Funk', 'x.....x...x..x..', '....x..x.x..x...', 'xxxxxxxxxxxxxxxx'],
+      hiphop:['Hip-hop', 'x......x..x.....', '....x.......x...', 'x.x.x.x.x.x.x.x.'],
+      halftime:['Half-time', 'x.........x.....', '........x.......', 'x.x.x.x.x.x.x.x.']},
+  3: {waltz:['Waltz', 'x...........', '....x...x...', 'x.x.x.x.x.x.']},
+  6: {sixeight:['6/8 groove', 'x.....x.....', '......x.....', 'x.x.x.x.x.x.']}
+};
+const spb = () => S.beats === 6 ? 2 : 4;
+function groove() { const g = GROOVES[S.beats] || GROOVES[4]; return g[S.drumStyle] || Object.values(g)[0]; }
+const noiseBufs = new WeakMap();
+function noiseBuf(ac) {
+  let b = noiseBufs.get(ac);
+  if (!b) { b = ac.createBuffer(1, Math.round(ac.sampleRate * 0.4), ac.sampleRate); const d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; noiseBufs.set(ac, b); }
+  return b;
+}
+function env(ac, out, t, peak, len) { const g = ac.createGain(); g.gain.setValueAtTime(peak, t); g.gain.exponentialRampToValueAtTime(0.001, t + len); g.connect(out); return g; }
+function kick(ac, out, t, v) {
+  const o = ac.createOscillator(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+  o.connect(env(ac, out, t, 1.1 * v, 0.35)); o.start(t); o.stop(t + 0.4);
+}
+function snare(ac, out, t, v) {
+  const n = ac.createBufferSource(); n.buffer = noiseBuf(ac);
+  const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1200;
+  n.connect(f); f.connect(env(ac, out, t, 0.6 * v, 0.18)); n.start(t); n.stop(t + 0.2);
+  const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = 190;
+  o.connect(env(ac, out, t, 0.35 * v, 0.1)); o.start(t); o.stop(t + 0.12);
+}
+function hat(ac, out, t, v) {
+  const n = ac.createBufferSource(); n.buffer = noiseBuf(ac);
+  const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7000;
+  n.connect(f); f.connect(env(ac, out, t, 0.22 * v, 0.05)); n.start(t); n.stop(t + 0.06);
+}
+function drumStep(ac, out, t, i) {
+  const [, K, Sn, H] = groove(); i = i % K.length;
+  const onBeat = i % spb() === 0;
+  if (K[i] === 'x') kick(ac, out, t, 1);
+  if (Sn[i] === 'x') snare(ac, out, t, onBeat ? 1 : 0.45);
+  if (H[i] === 'x') hat(ac, out, t, onBeat ? 1 : 0.6);
+}
+async function drumsToTrack() {
+  if (S.tracks.length >= MAX_TRACKS) { toast('All 16 tracks are in use.'); return; }
+  ensureCtx();
+  const sr = ctx.sampleRate, bars = Math.max(8, Math.ceil(songEnd() / barDur())), per = S.beats * spb(), sd = beatDur() / spb();
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const oc = new OAC(1, Math.ceil((bars * barDur() + 0.5) * sr), sr);
+  const out = oc.createGain(); out.gain.value = 0.8; out.connect(oc.destination);
+  for (let i = 0; i < bars * per; i++) drumStep(oc, out, i * sd, i % per);
+  const r = await oc.startRendering();
+  const t = newTrack(); t.name = groove()[0] + ' drums'; t.inst = 'drums';
+  S.tracks.push(t); nodesFor(t); renderTracks();
+  setClip(t, {start:0, sr, data:new Float32Array(r.getChannelData(0))});
+  toast(`Added ${bars} bars of drums as a track`);
+}
 function click(t, accent, out, loud) {
   const o = ctx.createOscillator(), g = ctx.createGain();
   o.type = 'square'; o.frequency.value = accent ? 1600 : 1000;
@@ -359,32 +702,197 @@ function startTransport(rec) {
     sources.push(src);
   }
   for (let i = 0; i < countBeats; i++) click(ctx.currentTime + LEAD + i * bd, i % S.beats === 0);
-  beatIdx = Math.ceil(pos / bd - 1e-6);
+  stepIdx = Math.ceil(pos / (bd / spb()) - 1e-6);
   playing = true;
   schedTimer = setInterval(schedule, 25); schedule();
   updateTransportUI(); startLoop();
 }
 function schedule() {
   if (!playing) return;
-  const bd = beatDur(), horizon = ctx.currentTime + 0.15;
+  const sd = beatDur() / spb(), per = S.beats * spb(), horizon = ctx.currentTime + 0.15;
   for (;;) {
-    const t = t0 + beatIdx * bd;
+    const t = t0 + stepIdx * sd;
     if (t > horizon) break;
-    if (S.metro && t >= ctx.currentTime - 0.005) click(t, beatIdx % S.beats === 0);
-    beatIdx++;
+    if (S.metro && !guideMuted && t >= ctx.currentTime - 0.005) {
+      const i = ((stepIdx % per) + per) % per;
+      if (S.guide === 'drums') drumStep(ctx, metroOut, t, i);
+      else if (i % spb() === 0) click(t, i === 0);
+    }
+    stepIdx++;
   }
 }
 function haltPlayback() {
-  playing = false; clearInterval(schedTimer); schedTimer = null;
+  playing = false; guideMuted = false; clearInterval(schedTimer); schedTimer = null;
   for (const s of sources) { try { s.stop(); } catch (e) {} }
   sources = [];
 }
 async function stopTransport() {
   if (!playing) return;
   haltPlayback();
-  if (recording) await finishRecording();
+  if (recording) { await finishRecording(); if (Cloud.pendingRemote) { Cloud.pendingRemote = false; refreshSoon(800); } }
   pos = playFrom;
   updateTransportUI(); updatePlayheads(); drawAll();
+}
+
+
+/* ---------------- auto drums: follow the recorded song ---------------- */
+function rim(ac, out, t, v) {
+  const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = 1700; o.connect(env(ac, out, t, 0.35 * v, 0.03)); o.start(t); o.stop(t + 0.05);
+  const n = ac.createBufferSource(); n.buffer = noiseBuf(ac); const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 3000;
+  n.connect(f); f.connect(env(ac, out, t, 0.3 * v, 0.025)); n.start(t); n.stop(t + 0.04);
+}
+function shaker(ac, out, t, v) {
+  const n = ac.createBufferSource(); n.buffer = noiseBuf(ac); const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 6500; f.Q.value = 1.2;
+  const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.2 * v, t + 0.012); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+  n.connect(f); f.connect(g); g.connect(out); n.start(t); n.stop(t + 0.1);
+}
+function tom(ac, out, t, v, p) {
+  const o = ac.createOscillator(), f0 = 190 - 90 * (p || 0);
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 0.6, t + 0.2);
+  o.connect(env(ac, out, t, 0.8 * v, 0.28)); o.start(t); o.stop(t + 0.3);
+}
+function crash(ac, out, t, v) {
+  const n = ac.createBufferSource(); n.buffer = noiseBuf(ac); n.loop = true; const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 4500;
+  n.connect(f); f.connect(env(ac, out, t, 0.3 * v, 1.4)); n.start(t); n.stop(t + 1.5);
+}
+const VOICES = {kick:(a, o, t, v) => kick(a, o, t, v), snare:snare, hat:hat, rim:rim, shaker:shaker, tom:tom, crash:crash};
+const isAutoTrack = t => t.name === 'Auto drums';
+async function analyzeSong() {
+  const src = S.tracks.filter(t => t.clip && t.clip.data.length && !t.mute && !isAutoTrack(t));
+  let end = 0; for (const t of src) end = Math.max(end, clipEnd(t.clip));
+  const bar = barDur(), per = S.beats * spb(), sd = beatDur() / spb();
+  if (end <= 0) { const bars = 8; return {bars, energy:new Array(bars).fill(0.7), onset:new Array(bars * per).fill(0), empty:true}; }
+  const bars = Math.max(2, Math.ceil(end / bar - 0.05)), sr = 11025;
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const oc = new OAC(1, Math.ceil(bars * bar * sr) + sr, sr);
+  for (const t of src) {
+    const c = t.clip, b = oc.createBuffer(1, c.data.length, c.sr); b.getChannelData(0).set(c.data);
+    const s = oc.createBufferSource(); s.buffer = b; const g = oc.createGain(); g.gain.value = t.vol;
+    s.connect(g); g.connect(oc.destination); if (c.start >= 0) s.start(c.start); else s.start(0, -c.start);
+  }
+  const d = (await oc.startRendering()).getChannelData(0), hop = Math.round(sr * 0.01), nF = Math.floor(d.length / hop);
+  const rms = new Float32Array(nF), flux = new Float32Array(nF);
+  for (let i = 0; i < nF; i++) { let a = 0; for (let j = i * hop, e = j + hop; j < e; j++) a += d[j] * d[j]; rms[i] = Math.sqrt(a / hop); }
+  for (let i = 1; i < nF; i++) flux[i] = Math.max(0, rms[i] - rms[i - 1]);
+  const energy = [], onset = [];
+  for (let b = 0; b < bars; b++) {
+    const a = Math.floor(b * bar / 0.01), z = Math.min(nF, Math.floor((b + 1) * bar / 0.01));
+    let m = 0; for (let i = a; i < z; i++) m += rms[i]; energy.push(z > a ? m / (z - a) : 0);
+    for (let s2 = 0; s2 < per; s2++) {
+      const c0 = Math.round((b * bar + s2 * sd) / 0.01); let mx = 0;
+      for (let i = Math.max(1, c0 - 2); i <= Math.min(nF - 1, c0 + 3); i++) if (flux[i] > mx) mx = flux[i];
+      onset.push(mx);
+    }
+  }
+  const eMax = Math.max(...energy) || 1; for (let i = 0; i < energy.length; i++) energy[i] /= eMax;
+  const sorted = [...onset].sort((p, q) => p - q), ref = sorted[Math.floor(sorted.length * 0.95)] || 1;
+  for (let i = 0; i < onset.length; i++) onset[i] = Math.min(1, onset[i] / (ref || 1));
+  return {bars, energy, onset, empty:false};
+}
+function drumPlan(an, x, y) {
+  const per = S.beats * spb(), sd = beatDur() / spb(), bar = barDur(), folk = x < 0.4, ev = [];
+  let kicks, snares;
+  if (S.beats === 4) { kicks = [0, 8]; snares = [4, 12]; if (x > 0.65) kicks.push(10); if (x > 0.85 && y > 0.5) kicks.push(3); }
+  else if (S.beats === 3) { kicks = [0]; snares = [4, 8]; }
+  else { kicks = [0]; snares = [6]; if (x > 0.6) kicks.push(9); }
+  const hatStep = S.beats === 6 ? 1 : (y > 0.6 && !folk ? 1 : 2);
+  for (let b = 0; b < an.bars; b++) {
+    const e = an.energy[b];
+    if (e < 0.08) continue;                                            // quiet bar: leave space
+    const dyn = 0.5 + 0.5 * Math.min(1, e * 1.15);
+    const last = b === an.bars - 1, phraseEnd = (b % 4 === 3) || (an.energy[b + 1] !== undefined && an.energy[b + 1] < 0.08);
+    const fillLen = (y > 0.3 && phraseEnd && !last) ? spb() * (y > 0.75 ? 2 : 1) : 0, fillFrom = per - fillLen;
+    const crashHere = x > 0.45 && ((b === 0) || (b % 4 === 0 && an.energy[b - 1] >= 0.08) || (b > 0 && an.energy[b - 1] < 0.08));
+    for (let s2 = 0; s2 < per; s2++) {
+      const t = b * bar + s2 * sd, on = an.onset[b * per + s2] || 0;
+      if (s2 >= fillFrom) {
+        const k = s2 - fillFrom, stepEvery = y > 0.75 ? 1 : 2;
+        if (k % stepEvery === 0) ev.push({t, k:folk ? (k % 2 ? 'rim' : 'tom') : (k < fillLen / 2 ? 'snare' : 'tom'), v:dyn * (0.65 + 0.35 * k / fillLen), p:k / fillLen});
+        continue;
+      }
+      if (crashHere && s2 === 0) ev.push({t, k:'crash', v:dyn});
+      if (kicks.includes(s2)) { if (!(folk && y < 0.25 && s2 !== 0 && S.beats === 4 && x < 0.2)) ev.push({t, k:'kick', v:dyn * (folk ? 0.7 : 1)}); }
+      else if (y > 0.15 && on > 1 - y * 0.7 && !snares.includes(s2) && s2 % (y > 0.6 ? 1 : 2) === 0) ev.push({t, k:'kick', v:dyn * 0.75});
+      if (snares.includes(s2)) ev.push({t, k:folk ? 'rim' : 'snare', v:dyn * (folk ? 0.8 : 1)});
+      else if (!folk && y > 0.55 && on > 0.45 && s2 % 2 === 1) ev.push({t, k:'snare', v:0.25 * dyn});
+      if (s2 % hatStep === 0) ev.push({t, k:folk ? 'shaker' : 'hat', v:dyn * (s2 % spb() === 0 ? 1 : 0.6) * (x > 0.85 && e > 0.75 ? 1.25 : 1)});
+    }
+  }
+  if (an.bars > 0 && an.energy[an.bars - 1] >= 0.08 && x > 0.3) { ev.push({t:an.bars * bar, k:'kick', v:0.9}); ev.push({t:an.bars * bar, k:'crash', v:0.9}); }
+  return ev;
+}
+function playEvents(ac, out, ev, offset) { for (const e of ev) VOICES[e.k](ac, out, e.t + offset, e.v, e.p); }
+let previewTimer = null;
+async function previewAutoDrums(btn) {
+  ensureCtx();
+  if (playing) await stopTransport();
+  btn.disabled = true; btn.textContent = 'Listening to the song…';
+  const an = await analyzeSong(), ev = drumPlan(an, S.autoX, S.autoY);
+  let from = 0, best = -1;
+  for (let b = 0; b < an.bars; b++) { const sc = (an.energy[b] || 0) + (an.energy[b + 1] || 0); if (sc > best) { best = sc; from = b; } }
+  from = Math.min(from, Math.max(0, an.bars - 2));
+  const startT = from * barDur(), endT = startT + 2 * barDur();
+  pos = startT; guideMuted = true; startTransport(false);
+  playEvents(ctx, metroOut, ev.filter(e => e.t >= startT - 0.001 && e.t < endT), t0);
+  btn.textContent = '■ Stop preview'; btn.disabled = false;
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => { if (playing) stopTransport(); btn.textContent = '▶ Preview'; }, (endT - startT + 0.4) * 1000 + LEAD * 1000);
+  btn.onclick = () => { clearTimeout(previewTimer); if (playing) stopTransport(); btn.textContent = '▶ Preview'; btn.onclick = () => previewAutoDrums(btn); };
+}
+async function addAutoDrums() {
+  ensureCtx();
+  if (playing) await stopTransport();
+  let tr = S.tracks.find(isAutoTrack);
+  if (!tr && S.tracks.length >= MAX_TRACKS) { toast('All 16 tracks are in use. Delete one to add drums.'); return; }
+  toast('Writing drums to fit your song…', 6000);
+  const an = await analyzeSong(), ev = drumPlan(an, S.autoX, S.autoY), sr = ctx.sampleRate;
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const oc = new OAC(1, Math.ceil((an.bars * barDur() + 2) * sr), sr);
+  const out = oc.createGain(); out.gain.value = 0.8; out.connect(oc.destination);
+  playEvents(oc, out, ev, 0);
+  const r = await oc.startRendering();
+  if (!tr) { tr = newTrack(); tr.name = 'Auto drums'; tr.inst = 'drums'; S.tracks.push(tr); nodesFor(tr); renderTracks(); }
+  setClip(tr, {start:0, sr, data:new Float32Array(r.getChannelData(0))});
+  toast(an.empty ? 'Added 8 bars of drums. Record something and run Auto drums again to make them follow your song.' : `Drums added: ${an.bars} bars that follow your song’s dynamics`, 5000);
+}
+function autoDrumsMenu() {
+  sheet('Auto drums', sh => {
+    const p = document.createElement('p');
+    p.textContent = 'JamByrd listens to what’s recorded and writes a drum part at your tempo: louder where the song gets louder, quiet where it drops out, with fills at the ends of phrases. Drag the dot to pick the feel.';
+    sh.appendChild(p);
+    const pad = document.createElement('div'); pad.className = 'pad';
+    const lab = (cls, txt, css) => { const e = document.createElement('span'); e.className = cls; e.textContent = txt; Object.assign(e.style, css); pad.appendChild(e); };
+    lab('ax', 'Complex', {top:'8px', left:'50%', transform:'translateX(-50%)'});
+    lab('ax', 'Simple', {bottom:'8px', left:'50%', transform:'translateX(-50%)'});
+    lab('ax', 'Folk', {left:'10px', top:'50%', transform:'translateY(-50%)'});
+    lab('ax', 'Rock', {right:'10px', top:'50%', transform:'translateY(-50%)'});
+    lab('q', 'busy folk', {left:'10px', top:'10px'}); lab('q', 'driving rock', {right:'10px', top:'10px'});
+    lab('q', 'gentle folk', {left:'10px', bottom:'10px'}); lab('q', 'straight rock', {right:'10px', bottom:'10px'});
+    const dot = document.createElement('div'); dot.className = 'padDot'; pad.appendChild(dot);
+    const read = document.createElement('p'); read.className = 'note'; read.style.textAlign = 'center';
+    const place = () => {
+      dot.style.left = (S.autoX * 100) + '%'; dot.style.top = ((1 - S.autoY) * 100) + '%';
+      const feel = S.autoX < 0.4 ? 'Folk: rim clicks, shaker, soft kick' : S.autoX > 0.7 ? 'Rock: full snare, hi-hats, crashes' : 'Pop/rock middle ground';
+      const busy = S.autoY < 0.3 ? 'simple' : S.autoY > 0.7 ? 'busy, with 16ths and longer fills' : 'some fills and kick pushes';
+      read.textContent = `${feel} · ${busy}`;
+    };
+    let down = false;
+    const set = e => { const r = pad.getBoundingClientRect(); S.autoX = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); S.autoY = Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height)); place(); };
+    pad.addEventListener('pointerdown', e => { down = true; pad.setPointerCapture && pad.setPointerCapture(e.pointerId); set(e); });
+    pad.addEventListener('pointermove', e => { if (down) set(e); });
+    const up = () => { if (down) { down = false; saveMeta(); } };
+    pad.addEventListener('pointerup', up); pad.addEventListener('pointercancel', up);
+    sh.appendChild(pad); sh.appendChild(read); place();
+    const row = document.createElement('div'); row.className = 'row';
+    const pv = document.createElement('button'); pv.textContent = '▶ Preview'; pv.onclick = () => previewAutoDrums(pv);
+    const add = document.createElement('button'); add.className = 'primary';
+    add.textContent = S.tracks.some(isAutoTrack) ? 'Replace drum track' : 'Add drum track';
+    add.onclick = () => { closeSheet(); clearTimeout(previewTimer); addAutoDrums(); };
+    row.append(pv, add); sh.appendChild(row);
+    const n = document.createElement('p'); n.className = 'note';
+    n.textContent = 'Works best when parts were recorded to the click at the song’s tempo. Re-run it after adding layers; it replaces the “Auto drums” track.';
+    sh.appendChild(n);
+  });
 }
 
 /* ---------------- recording ---------------- */
@@ -509,6 +1017,7 @@ async function startRecording() {
   S.tracks.forEach(applyMix);
   recNode.port.postMessage(true);
   startTransport(true);
+  sendStatus(`${tr.player ? tr.player.trim() : 'Someone'} is recording on ${label(tr)}`);
   wake(true);
 }
 async function finishRecording() {
@@ -564,6 +1073,7 @@ function setClip(tr, c) {
     IDB.put('audio', tr.clip.id, tr.clip.data);
     if (!persistAsked && navigator.storage && navigator.storage.persist) { persistAsked = true; navigator.storage.persist().catch(() => {}); }
   }
+  if (c && !S.songId && cloudConfigured()) goOnline(); else markTrack(tr);
   saveMeta(); updateTrackStates(); drawAll();
 }
 
@@ -705,7 +1215,7 @@ function saveProjectFile() {
     for (let i = 0; i < d.length; i++) { let s = d[i]; s = s < -1 ? -1 : s > 1 ? 1 : s; i16[i] = s < 0 ? s * 0x8000 : s * 0x7fff; }
     parts.push(i16);
   }
-  deliver(new Blob(parts, {type:'application/octet-stream'}), safe(S.name) + '.jampass');
+  deliver(new Blob(parts, {type:'application/octet-stream'}), safe(S.name) + '.jambyrd');
 }
 async function openProjectFile(file) {
   try {
@@ -714,7 +1224,7 @@ async function openProjectFile(file) {
     const hl = dv.getUint32(4, true);
     const meta = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, 8, hl)));
     let off = 8 + hl;
-    if (playing) await stopTransport();
+    if (!(await leaveSong())) return;
     S.tracks.forEach(t => { t.armed = false; try { t.g && t.g.disconnect(); t.p && t.p.disconnect(); } catch (e) {} });
     closeMic();
     await IDB.clear('audio');
@@ -734,8 +1244,9 @@ async function openProjectFile(file) {
     }
     if (ctx) S.tracks.forEach(nodesFor);
     pos = 0; syncControls(); renderTracks(); saveMeta();
+    if (S.tracks.some(t => t.clip)) goOnline();
     toast('Opened ' + S.name);
-  } catch (e) { toast('That isn’t a JamPass project file.'); }
+  } catch (e) { toast('That isn’t a JamByrd project file.'); }
 }
 
 /* ---------------- drawing ---------------- */
@@ -853,21 +1364,24 @@ function renderTracks() {
         <label title="Double-tap to center">Pan<input type="range" class="pan" min="-1" max="1" step="0.05"></label></div>
       <div class="wave"><canvas></canvas><div class="empty">Empty. Tap R and record, or ⋯ → Import audio</div><div class="ph"></div><div class="meter"><i></i></div></div>`;
     const q = s => el.querySelector(s);
-    tr.el = {root:el, cv:q('canvas'), ph:q('.ph'), meter:q('.meter i'), empty:q('.empty'), arm:q('.arm'), mute:q('.mute'), solo:q('.solo')};
+    tr.el = {root:el, cv:q('canvas'), ph:q('.ph'), meter:q('.meter i'), empty:q('.empty'), arm:q('.arm'), mute:q('.mute'), solo:q('.solo'),
+      name:q('.tname'), player:q('.player'), sel:q('.tsel'), vol:q('.vol'), pan:q('.pan')};
     const name = q('.tname'); name.value = tr.name;
-    name.addEventListener('input', () => { tr.name = name.value; saveMeta(); });
+    name.addEventListener('input', () => { tr.name = name.value; markTrack(tr); saveMeta(); });
     const sel = q('.tsel'); sel.value = tr.inst;
     sel.addEventListener('change', () => {
       tr.inst = sel.value;
-      el.style.setProperty('--c', colorOf(tr)); drawWave(tr); saveMeta();
+      el.style.setProperty('--c', colorOf(tr)); drawWave(tr); markTrack(tr); saveMeta();
     });
     const pl = q('.player'); pl.value = tr.player;
-    pl.addEventListener('input', () => { tr.player = pl.value; saveMeta(); });
+    pl.addEventListener('input', () => { tr.player = pl.value; markTrack(tr); saveMeta(); });
     const vol = q('.vol'); vol.value = tr.vol;
     vol.addEventListener('input', () => { tr.vol = +vol.value; applyMix(tr); saveMeta(); });
+    vol.addEventListener('change', () => markTrack(tr));
     const pan = q('.pan'); pan.value = tr.pan;
     pan.addEventListener('input', () => { tr.pan = +pan.value; applyMix(tr); saveMeta(); });
-    pan.addEventListener('dblclick', () => { tr.pan = 0; pan.value = 0; applyMix(tr); saveMeta(); });
+    pan.addEventListener('change', () => markTrack(tr));
+    pan.addEventListener('dblclick', () => { tr.pan = 0; pan.value = 0; applyMix(tr); markTrack(tr); saveMeta(); });
     tr.el.arm.addEventListener('click', () => setArm(tr, !tr.armed));
     tr.el.mute.addEventListener('click', () => { tr.mute = !tr.mute; S.tracks.forEach(applyMix); updateTrackStates(); saveMeta(); });
     tr.el.solo.addEventListener('click', () => { tr.solo = !tr.solo; S.tracks.forEach(applyMix); updateTrackStates(); saveMeta(); });
@@ -910,7 +1424,7 @@ function updateTransportUI() {
   updateTrackStates(); updateClock();
 }
 function syncControls() {
-  $('#songName').value = S.name; updateTempoLbl(); $('#metroBtn').classList.toggle('on', S.metro);
+  $('#songName').value = S.name; updateTempoLbl(); $('#metroBtn').textContent = S.guide === 'drums' ? 'Drums' : 'Click'; $('#metroBtn').classList.toggle('on', S.metro);
   if (metroOut) metroOut.gain.value = S.metroVol;
 }
 
@@ -930,7 +1444,7 @@ function trackMenu(tr) {
       const row = document.createElement('div'); row.className = 'row';
       [-50, -10, -2, 2, 10, 50].forEach(ms => {
         const b = document.createElement('button'); b.textContent = (ms > 0 ? '+' : '') + ms;
-        b.onclick = () => { tr.clip.start = Math.round((tr.clip.start + ms / 1000) * 1000) / 1000; setLab(); saveMeta(); drawAll(); };
+        b.onclick = () => { tr.clip.start = Math.round((tr.clip.start + ms / 1000) * 1000) / 1000; setLab(); markTrack(tr); saveMeta(); drawAll(); };
         row.appendChild(b);
       });
       sh.appendChild(row);
@@ -943,40 +1457,51 @@ function trackMenu(tr) {
         if (tr.armed) setArm(tr, false);
         if (tr.clip) IDB.del('audio', tr.clip.id);
         try { tr.g && tr.g.disconnect(); tr.p && tr.p.disconnect(); } catch (e) {}
-        S.tracks.splice(S.tracks.indexOf(tr), 1); renderTracks(); saveMeta();
+        S.tracks.splice(S.tracks.indexOf(tr), 1); if (S.songId) { Cloud.dirtyTracks.delete(tr.id); Cloud.deleted.add(tr.id); markAllTracks(); scheduleSync(); } renderTracks(); saveMeta();
       });
     }, 'danger');
   });
 }
 function mainMenu() {
   sheet('Song', sh => {
+    item(sh, 'My songs', 'Everything you’ve recorded or opened from a link.', () => songsMenu());
+    item(sh, 'Share this song', 'Send a link so friends can add their own layers.', () => shareSong());
     item(sh, 'Export mix (WAV)', 'Full-quality stereo mixdown of what you hear (respects mute, solo, volume and pan).', () => { closeSheet(); exportMix(false); });
-    item(sh, 'Send a guide mix to a friend', 'Small mono file they can import and play along to.', () => { closeSheet(); exportMix(true); });
-    item(sh, 'Save project file', 'The whole song with every track, to back up or pass to another phone.', () => { closeSheet(); saveProjectFile(); });
-    item(sh, 'Open project file', 'Load a .jampass project file. Replaces the current song.', () => {
+    item(sh, 'Save project file', 'A backup file of the whole song with every track.', () => { closeSheet(); saveProjectFile(); });
+    item(sh, 'Open project file', 'Load a .jambyrd project file. Replaces the current song.', () => {
       closeSheet(); const fi = $('#projIn'); fi.value = '';
-      fi.onchange = () => { const f = fi.files[0]; if (f) confirmSheet('Open project?', 'This replaces the song that’s open now. Save a project file first if you want to keep it.', 'Open', () => openProjectFile(f)); };
+      fi.onchange = () => { const f = fi.files[0]; if (f) confirmSheet('Open project?', 'This opens the file as a new song. Your current song stays saved in My songs.', 'Open', () => openProjectFile(f)); };
       fi.click();
     });
-    item(sh, 'Settings', 'Input, latency calibration, punch-in, monitoring, click volume.', () => settingsMenu());
+    item(sh, 'Settings', 'Input, latency calibration, punch-in, monitoring, click/drum volume.', () => settingsMenu());
     item(sh, 'How to jam with friends', null, () => { closeSheet(); const h = $('#help'); h.open = true; h.scrollIntoView({behavior:'smooth'}); });
-    item(sh, 'New song', 'Clears all tracks on this device.', () => {
-      confirmSheet('Start a new song?', 'All tracks on this device will be erased. Save a project file first if you want to keep this one.', 'Erase & start new', newSong);
-    }, 'danger');
+    item(sh, 'New song', 'Start fresh. This song stays saved in My songs.', () => { closeSheet(); newSong(); });
   });
 }
-async function newSong() {
+async function leaveSong() {
   if (playing) await stopTransport();
+  if (!S.songId && S.tracks.some(t => t.clip)) {
+    if (!goOnline()) return new Promise(res => confirmSheet('Erase this song?', 'Online saving isn’t available, so this song’s tracks will be erased from this device.', 'Erase', () => res(true)));
+  }
+  if (S.songId && !(await waitIdle())) { toast('Couldn’t save this song online yet, so it’s still open. Check your connection.', 5000); return false; }
+  leaveChannel();
+  Cloud.dirtyMeta = false; Cloud.dirtyTracks.clear(); Cloud.deleted.clear(); Cloud.pendingRemote = false;
+  S.songId = null; history.replaceState(null, '', location.pathname); setCloud('local');
+  return true;
+}
+async function newSong() {
+  if (!(await leaveSong())) return;
   S.tracks.forEach(t => { if (t.armed) t.armed = false; try { t.g && t.g.disconnect(); t.p && t.p.disconnect(); } catch (e) {} });
   closeMic(); await IDB.clear('audio');
   S.name = 'Untitled song'; S.tracks = [0, 1, 2, 3].map(() => newTrack());
   if (ctx) S.tracks.forEach(nodesFor);
   pos = 0; syncControls(); renderTracks(); saveMeta();
+  toast('New song. It’s saved online as soon as you record something.');
 }
 const SIGS = {3:'3/4', 4:'4/4', 6:'6/8'};
 function updateTempoLbl() {
   $('#tempoLbl').textContent = `${S.bpm} BPM · ${SIGS[S.beats] || S.beats + '/4'}`;
-  $('#countLbl').textContent = S.countIn ? `${S.countIn}-bar count` : 'no count-in';
+  $('#countLbl').textContent = S.guide === 'drums' ? groove()[0] + ' drums' : (S.countIn ? `${S.countIn}-bar count` : 'no count-in');
 }
 function tempoMenu() {
   if (playing) { toast('Stop first to change the tempo.'); return; }
@@ -984,7 +1509,7 @@ function tempoMenu() {
     const big = document.createElement('div'); big.className = 'bpmBig';
     const out = document.createElement('output');
     const show = () => { out.innerHTML = ''; out.append(String(S.bpm)); const sm = document.createElement('small'); sm.textContent = 'BPM'; out.appendChild(sm); };
-    const setBpm = v => { S.bpm = Math.max(40, Math.min(240, Math.round(v))); show(); updateTempoLbl(); drawAll(); saveMeta(); };
+    const setBpm = v => { S.bpm = Math.max(40, Math.min(240, Math.round(v))); show(); updateTempoLbl(); drawAll(); markSong(); saveMeta(); };
     const mk = (txt, d) => { const b = document.createElement('button'); b.textContent = txt; b.onclick = () => setBpm(S.bpm + d); return b; };
     show(); big.append(mk('−5', -5), mk('−1', -1), out, mk('+1', 1), mk('+5', 5)); sh.appendChild(big);
     const tap = document.createElement('button'); tap.className = 'item primary'; tap.style.textAlign = 'center'; tap.style.height = '56px';
@@ -998,16 +1523,30 @@ function tempoMenu() {
       tap.textContent = taps.length < 2 ? 'Keep tapping…' : `Tap tempo: ${S.bpm} BPM`;
     });
     sh.appendChild(tap);
-    const seg = (lbl, opts, get, set) => {
+    const seg = (lbl, opts, get, set, after) => {
       const l = document.createElement('label'); l.className = 'f'; l.textContent = lbl; sh.appendChild(l);
       const row = document.createElement('div'); row.className = 'seg';
       opts.forEach(([v, t]) => { const b = document.createElement('button'); b.textContent = t; b.classList.toggle('on', get() === v);
-        b.onclick = () => { set(v); row.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); updateTempoLbl(); drawAll(); saveMeta(); };
+        b.onclick = () => { set(v); row.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); updateTempoLbl(); syncControls(); drawAll(); markSong(); saveMeta(); if (after) after(); };
         row.appendChild(b); });
       sh.appendChild(row);
     };
-    seg('Time signature', [[3, '3/4'], [4, '4/4'], [6, '6/8']], () => S.beats, v => S.beats = v);
+    seg('Time signature', [[3, '3/4'], [4, '4/4'], [6, '6/8']], () => S.beats, v => S.beats = v, () => tempoMenu());
     seg('Count-in before recording', [[0, 'Off'], [1, '1 bar'], [2, '2 bars']], () => S.countIn, v => S.countIn = v);
+    seg('Play along to', [['click', 'Click'], ['drums', 'Drums']], () => S.guide, v => { S.guide = v; S.metro = true; }, () => tempoMenu());
+    if (S.guide === 'drums') {
+      const g = GROOVES[S.beats] || GROOVES[4], keys = Object.keys(g);
+      if (!g[S.drumStyle]) S.drumStyle = keys[0];
+      seg('Drum groove', keys.map(k => [k, g[k][0]]), () => S.drumStyle, v => S.drumStyle = v);
+      const pv = document.createElement('div'); pv.className = 'row';
+      const hear = document.createElement('button'); hear.textContent = '▶ Hear 1 bar';
+      hear.onclick = () => { ensureCtx(); const sd = beatDur() / spb(), per = S.beats * spb(), t = ctx.currentTime + 0.05; for (let i = 0; i < per; i++) drumStep(ctx, metroOut, t + i * sd, i); };
+      const add = document.createElement('button'); add.textContent = '+ Add drums as a track';
+      add.onclick = () => { closeSheet(); drumsToTrack(); };
+      pv.append(hear, add); sh.appendChild(pv);
+      item(sh, '🥁 Auto drums that follow the song…', 'Folk ↔ rock and simple ↔ complex pad', () => autoDrumsMenu());
+      const n = document.createElement('p'); n.className = 'note'; n.textContent = 'Drums play while you record and play back. “Add drums as a track” puts them in the song so they’re in exports and everyone hears them.'; sh.appendChild(n);
+    }
     const d = document.createElement('div'); d.className = 'row'; const db = document.createElement('button'); db.textContent = 'Done'; db.onclick = closeSheet; d.appendChild(db); sh.appendChild(d);
   });
 }
@@ -1064,7 +1603,7 @@ async function settingsMenu() {
   mon.value = S.monitor ? '1' : '0';
   mon.onchange = () => { S.monitor = mon.value === '1'; if (monGain) monGain.gain.value = S.monitor ? 1 : 0; }; sh.appendChild(mon);
 
-  field('Click volume');
+  field('Click / drums volume');
   const cv = document.createElement('input'); cv.type = 'range'; cv.min = 0; cv.max = 1; cv.step = 0.05; cv.value = S.metroVol;
   cv.oninput = () => { S.metroVol = +cv.value; if (metroOut) metroOut.gain.value = S.metroVol; saveMeta(); }; sh.appendChild(cv);
 
@@ -1078,11 +1617,13 @@ $('#homeBtn').addEventListener('click', async () => { if (playing) await stopTra
 $('#menuBtn').addEventListener('click', mainMenu);
 $('#addTrack').addEventListener('click', () => {
   if (S.tracks.length >= MAX_TRACKS) return;
-  const t = newTrack(); S.tracks.push(t); nodesFor(t); renderTracks(); saveMeta();
+  const t = newTrack(); S.tracks.push(t); nodesFor(t); renderTracks(); markTrack(t); saveMeta();
 });
-$('#songName').addEventListener('input', e => { S.name = e.target.value; saveMeta(); });
+$('#songName').addEventListener('input', e => { S.name = e.target.value; markSong(); saveMeta(); });
 $('#tempoBtn').addEventListener('click', tempoMenu);
+$('#autoBtn').addEventListener('click', autoDrumsMenu);
 $('#metroBtn').addEventListener('click', e => { S.metro = !S.metro; e.currentTarget.classList.toggle('on', S.metro); saveMeta(); });
+$('#shareBtn').addEventListener('click', shareSong);
 bindSeek($('#rulerWrap'));
 document.addEventListener('keydown', e => {
   if (e.target.matches('input,select,textarea') || curSheet) return;
@@ -1096,14 +1637,29 @@ document.addEventListener('touchend', () => { if (ctx && ctx.state !== 'running'
 (() => {
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-  let dismissed = false; try { dismissed = localStorage.getItem('jp-tip') === '1'; } catch (e) {}
+  let dismissed = false; try { dismissed = localStorage.getItem('jb-tip') === '1'; } catch (e) {}
   if (ios && !standalone && !dismissed) $('#installTip').classList.add('show');
-  $('#tipX').addEventListener('click', () => { $('#installTip').classList.remove('show'); try { localStorage.setItem('jp-tip', '1'); } catch (e) {} });
+  $('#tipX').addEventListener('click', () => { $('#installTip').classList.remove('show'); try { localStorage.setItem('jb-tip', '1'); } catch (e) {} });
 })();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+window.addEventListener('online', () => { scheduleSync(50); refreshSoon(500); });
+window.addEventListener('offline', () => { if (S.songId) setCloud('offline'); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.songId) refreshSoon(300); });
 (async () => {
   await loadSaved();
   syncControls(); renderTracks();
+  if (cloudConfigured()) {
+    const link = new URLSearchParams(location.search).get('s');
+    if (link && /^[A-Za-z0-9]{16,40}$/.test(link) && link !== S.songId) {
+      const known = (await getLibrary()).some(x => x.id === link);
+      const ok = await openCloudSong(link, true);
+      if (ok) toast(known ? `Opened “${S.name}”` : `You’re in “${S.name}”. Tap + Add track (or R on an empty track) to record your part.`, 7000);
+    } else if (S.songId) {
+      history.replaceState(null, '', '?s=' + S.songId);
+      setCloud(hasWork() ? 'saving' : 'saved'); joinChannel();
+      if (hasWork()) scheduleSync(50); else refreshSoon(50);
+    } else setCloud('local');
+  } else $('#shareBtn').style.display = 'none';
   if (!window.isSecureContext) toast('Open this app over https (your GitHub Pages link) so the mic works.', 6000);
 })();
 </script>
