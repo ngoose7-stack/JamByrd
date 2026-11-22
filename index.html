@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121316">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JamPass">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>JamPass</title>
+<style>
+:root{--bg:#121316;--panel:#1b1d22;--panel2:#25282f;--line:#31353d;--text:#ece9e2;--dim:#8d929b;--rec:#ff4d4d;--amber:#f2b84b;--ok:#5ad19a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 28px) env(safe-area-inset-left)}
+button,select,input{font:inherit;color:inherit}
+button,select,input,.wave,.rulerWrap{touch-action:manipulation}
+@media (pointer:coarse){input,select{font-size:16px !important}}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input{-webkit-user-select:text;user-select:text}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;min-height:40px;min-width:40px;padding:0 12px;cursor:pointer}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:default}
+.wrap{max-width:860px;margin:0 auto;padding:0 12px}
+header{display:flex;align-items:center;gap:8px;padding:12px 0 6px}
+.logo{font-size:11px;letter-spacing:.14em;color:var(--amber);font-weight:700;text-transform:uppercase}
+#songName{flex:1;background:transparent;border:0;border-bottom:1px solid transparent;font-size:20px;font-weight:700;min-width:0;padding:4px 0}
+#songName:focus{outline:none;border-bottom-color:var(--amber)}
+.transport{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 8px;border-bottom:1px solid var(--line)}
+.trow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.clock{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:26px;font-weight:600;min-width:124px;margin-right:auto;line-height:1.1}
+.clock small{display:block;font-size:12px;color:var(--dim);font-weight:400}
+.clock.count{color:var(--amber)}
+.big{width:52px;height:52px;border-radius:50%;font-size:19px;padding:0}
+#recBtn{color:var(--rec);font-size:22px}
+#recBtn.on{background:var(--rec);color:#fff;border-color:var(--rec);animation:pulse 1s infinite}
+#playBtn.on{background:var(--ok);color:#111;border-color:var(--ok)}
+@keyframes pulse{50%{box-shadow:0 0 0 7px rgba(255,77,77,.25)}}
+.chip{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:0 8px;height:40px}
+.chip span{font-size:12px;color:var(--dim)}
+.chip input{width:44px;background:transparent;border:0;text-align:center;padding:0}
+select.chip{padding:0 4px;font-size:14px}
+.trow2{gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.trow2 .chip{padding:0 6px}
+.trow2>*{flex:none}
+#metroBtn{padding:0 14px}
+.tempo{flex:1 !important;justify-content:flex-start;cursor:pointer;min-width:0}
+.tempo b{font-weight:650;white-space:nowrap}
+.tempo span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:flex;gap:6px;margin:6px 0}.seg button{flex:1}.seg button.on{background:var(--amber);color:#111;border-color:var(--amber)}
+.bpmBig{display:flex;align-items:center;gap:8px;margin:6px 0}.bpmBig button{flex:1;height:52px;font-size:18px}.bpmBig output{min-width:92px;text-align:center;font:600 30px ui-monospace,Menlo,monospace}
+.bpmBig output small{display:block;font-size:11px;color:var(--dim);font-weight:400}
+.toggle.on{background:var(--amber);color:#111;border-color:var(--amber)}
+.rulerWrap{position:relative;margin-top:8px;height:26px;border-radius:6px;overflow:hidden;background:var(--panel);touch-action:none;cursor:pointer}
+.rulerWrap canvas{width:100%;height:100%;display:block}
+.track{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:12px;margin:10px 0;padding:8px}
+.track.armed{border-color:var(--rec);border-left-color:var(--c);box-shadow:0 0 0 1px rgba(255,77,77,.3)}
+.r1,.r2{display:flex;align-items:center;gap:6px}
+.r2{margin-top:6px}
+.num{font-size:12px;color:var(--dim);width:14px;text-align:center}
+.tname{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px solid transparent;font-weight:650;font-size:16px;padding:4px 2px}
+.tname:focus{outline:none;border-bottom-color:var(--c)}
+.tsel{background:var(--panel2);border:1px solid var(--line);border-radius:8px;height:34px;padding:0 2px;max-width:84px;font-size:14px}
+.tname::placeholder{color:#5d626b;font-weight:500}
+.sm{min-height:34px;min-width:34px;padding:0 8px;border-radius:8px;font-weight:700;font-size:13px}
+.arm.on{background:var(--rec);border-color:var(--rec);color:#fff}
+.mute.on{background:#5b8def;border-color:#5b8def;color:#fff}
+.solo.on{background:var(--amber);border-color:var(--amber);color:#111}
+.player{width:112px;flex:none;background:var(--panel2);border:1px solid var(--line);border-radius:8px;height:34px;padding:0 8px;font-size:13px}
+.r2 label{font-size:11px;color:var(--dim);display:flex;align-items:center;gap:4px;flex:1;min-width:0}
+.r2 input[type=range]{flex:1;min-width:30px;accent-color:var(--c)}
+.wave{position:relative;margin-top:8px;height:64px;border-radius:8px;overflow:hidden;background:#15171b;touch-action:none;cursor:pointer}
+.wave canvas{width:100%;height:100%;display:block}
+.ph{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff;opacity:.9;pointer-events:none;left:0}
+.meter{position:absolute;right:6px;top:6px;bottom:6px;width:7px;background:#000b;border-radius:3px;overflow:hidden;display:none}
+.track.armed .meter{display:block}
+.meter i{position:absolute;bottom:0;left:0;right:0;background:var(--ok);height:0}
+.meter i.hot{background:var(--rec)}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:12px;pointer-events:none;text-align:center;padding:0 20px}
+.addRow{display:flex;gap:8px;margin:12px 0}
+.addRow button{flex:1}
+details.help{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:8px;color:#d3d0c9}
+details.help summary{font-weight:650;cursor:pointer;color:var(--text)}
+details.help h4{margin:12px 0 4px;color:var(--amber);font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+details.help ol,details.help ul{margin:4px 0;padding-left:20px}
+details.help li{margin:5px 0}
+.sheetBg{position:fixed;inset:0;background:#000a;z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--panel);border-top-left-radius:16px;border-top-right-radius:16px;width:100%;max-width:560px;padding:14px 14px calc(16px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;border:1px solid var(--line)}
+.sheet h3{margin:2px 0 10px;font-size:16px}
+.sheet p{color:#cfccc5;margin:6px 0}
+.sheet .item{display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px}
+.sheet .item small{display:block;color:var(--dim);font-size:12px}
+.sheet .row{display:flex;gap:6px;align-items:center;margin:8px 0;flex-wrap:wrap}
+.sheet .row button{flex:1;min-width:52px}
+.sheet label.f{display:block;margin:14px 0 4px;font-size:13px;color:var(--dim)}
+.sheet select,.sheet input[type=number]{background:var(--panel2);border:1px solid var(--line);border-radius:8px;height:40px;padding:0 8px;width:100%}
+.sheet input[type=range]{width:100%;accent-color:var(--amber)}
+.note{font-size:12px;color:var(--dim)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#000e;border:1px solid var(--line);padding:10px 14px;border-radius:10px;z-index:30;max-width:90vw;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
+.danger{color:var(--rec)}
+#installTip{display:none;background:var(--panel);border:1px solid var(--amber);border-radius:12px;padding:10px 12px;margin:10px 0 0;font-size:14px;align-items:center;gap:10px}
+#installTip.show{display:flex}
+#installTip b{color:var(--amber)}
+#installTip button{flex:none;min-height:34px}
+.primary{background:var(--amber);color:#111;border-color:var(--amber);font-weight:650}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div style="flex:1;min-width:0">
+      <div class="logo">JamPass</div>
+      <input id="songName" value="Untitled song" aria-label="Song name" maxlength="40">
+    </div>
+    <button id="menuBtn" aria-label="Menu" style="font-size:20px">⋯</button>
+  </header>
+
+  <div id="installTip"><div style="flex:1">Install JamPass: tap <b>Share</b> then <b>Add to Home Screen</b>. It opens full-screen, and your songs won’t get cleared.</div><button id="tipX" aria-label="Dismiss">✕</button></div>
+  <div class="transport">
+    <div class="trow">
+      <div class="clock" id="clock"><span id="clockT">0:00.0</span><small id="clockB">Bar 1 · Beat 1</small></div>
+      <button class="big" id="homeBtn" title="Back to start" aria-label="Back to start">⏮</button>
+      <button class="big" id="playBtn" title="Play / Stop" aria-label="Play">▶</button>
+      <button class="big" id="recBtn" title="Record" aria-label="Record">●</button>
+    </div>
+    <div class="trow trow2" style="margin-top:8px">
+      <button id="tempoBtn" class="chip tempo"><span>Tempo</span><b id="tempoLbl">100 BPM · 4/4</b><span id="countLbl">1-bar count</span></button>
+      <button id="metroBtn" class="toggle on">Click</button>
+    </div>
+    <div class="rulerWrap" id="rulerWrap"><canvas id="ruler"></canvas><div class="ph" id="rulerPh"></div></div>
+  </div>
+
+  <div id="tracks"></div>
+  <div class="addRow"><button id="addTrack">+ Add track</button></div>
+
+  <details class="help" id="help">
+    <summary>How to record &amp; jam with friends</summary>
+    <h4>Laying down a track</h4>
+    <ol>
+      <li>Plug in wired headphones (Lightning/USB-C or an adapter) so the mic doesn't pick up the other tracks. AirPods add delay and lower mic quality while recording.</li>
+      <li>Tap <b>R</b> on a track to arm it (allow the mic the first time).</li>
+      <li>Tap the Tempo bar to set the speed (use Tap tempo or the +/− buttons), then hit <b style="color:var(--rec)">●</b>. You get a count-in, then it records while you hear everything else.</li>
+      <li>Hit <b>▶/■</b> or <b>●</b> again to stop. Not happy? Record again; the take is replaced (or use Punch-in mode in Settings to redo just one part).</li>
+    </ol>
+    <h4>Friends in the room</h4>
+    <ul>
+      <li>Give each person a track and optionally tap <i>Player</i> to add their name</li>
+      <li>Pass the phone (or plug in a USB audio interface and pick it under Settings → Input). Arm their track and record.</li>
+      <li>Use <b>M</b> (mute) and <b>S</b> (solo) to check parts, and the sliders to balance the mix.</li>
+    </ul>
+    <h4>Friends somewhere else</h4>
+    <ol>
+      <li>Menu → <b>Send a guide mix</b> and text it to your friend with this app's link.</li>
+      <li>They open the app, import the guide mix onto track 1, record their part on track 2, then use the track's <b>⋯ → Export this track</b> and send it back.</li>
+      <li>You tap <b>⋯ → Import audio</b> on any track. Exports start at 0:00, so it lines up with your song. Use Nudge to fine-tune.</li>
+    </ol>
+    <h4>If takes sound late or early</h4>
+    <p class="note" style="margin:4px 0">Open Settings → <b>Calibrate</b> once on each phone (headphones off, volume up). Avoid Bluetooth headphones while recording; they add a lot of delay.</p>
+  </details>
+</div>
+<div id="toast" role="status"></div>
+<input type="file" id="fileIn" accept="audio/*,video/*,.wav,.mp3,.m4a,.aac,.ogg,.flac" hidden>
+<input type="file" id="projIn" hidden>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const INST = {none:['Part','#9aa5b1'], guitar:['Guitar','#f2a541'], bass:['Bass','#e4572e'], keys:['Keys','#76b041'], vocals:['Vocals','#29b6f6'], drums:['Drums','#c77dff'], other:['Other','#9aa5b1']};
+const INST_ORDER = Object.keys(INST);
+const PALETTE = ['#f2a541','#29b6f6','#76b041','#e4572e','#c77dff','#4dd0c4','#ff7eb6','#e8d44d'];
+const MAX_TRACKS = 16;
+const trackNum = tr => S.tracks.indexOf(tr) + 1;
+const label = tr => (tr.name && tr.name.trim()) || ('Track ' + trackNum(tr));
+const colorOf = tr => tr.inst && tr.inst !== 'none' && INST[tr.inst] ? INST[tr.inst][1] : PALETTE[(trackNum(tr) - 1) % PALETTE.length];
+const PEAKS_PER_SEC = 100;
+const LEAD = 0.1;
+
+const S = {name:'Untitled song', bpm:100, beats:4, metro:true, countIn:1, metroVol:0.6, latencyMs:null, recMode:'replace', monitor:false, deviceId:'', tracks:[]};
+let pos = 0, playing = false, recording = false, playFrom = 0;
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+
+function newTrack() {
+  return {id:uid(), name:'', player:'', inst:'none', vol:0.8, pan:0, mute:false, solo:false, armed:false, clip:null};
+}
+
+
+/* ---------------- toast & sheets ---------------- */
+let toastTimer;
+function toast(msg, ms = 3200) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+let curSheet = null;
+function closeSheet() { if (curSheet) { curSheet.remove(); curSheet = null; } }
+function sheet(title, build) {
+  closeSheet();
+  const bg = document.createElement('div'); bg.className = 'sheetBg';
+  const sh = document.createElement('div'); sh.className = 'sheet';
+  const h = document.createElement('h3'); h.textContent = title; sh.appendChild(h);
+  bg.appendChild(sh);
+  bg.addEventListener('click', e => { if (e.target === bg) closeSheet(); });
+  document.body.appendChild(bg); curSheet = bg;
+  build(sh);
+  return sh;
+}
+function item(parent, label, sub, fn, cls) {
+  const b = document.createElement('button'); b.className = 'item ' + (cls || '');
+  b.append(label);
+  if (sub) { const s = document.createElement('small'); s.textContent = sub; b.appendChild(s); }
+  b.addEventListener('click', fn); parent.appendChild(b); return b;
+}
+function confirmSheet(title, text, okLabel, fn) {
+  sheet(title, sh => {
+    const p = document.createElement('p'); p.textContent = text; sh.appendChild(p);
+    const row = document.createElement('div'); row.className = 'row';
+    const c = document.createElement('button'); c.textContent = 'Cancel'; c.onclick = closeSheet;
+    const o = document.createElement('button'); o.textContent = okLabel; o.className = 'primary'; o.onclick = () => { closeSheet(); fn(); };
+    row.append(c, o); sh.appendChild(row);
+  });
+}
+
+/* ---------------- storage (IndexedDB) ---------------- */
+const IDB = {
+  db: null,
+  open() {
+    return new Promise(res => {
+      if (!window.indexedDB) return res(null);
+      let r; try { r = indexedDB.open('jampass', 1); } catch (e) { return res(null); }
+      r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('meta'); d.createObjectStore('audio'); };
+      r.onsuccess = () => { this.db = r.result; res(this.db); };
+      r.onerror = () => res(null);
+    });
+  },
+  tx(store, mode, fn) {
+    if (!this.db) return Promise.resolve(null);
+    return new Promise(res => {
+      try {
+        const t = this.db.transaction(store, mode); const req = fn(t.objectStore(store));
+        t.oncomplete = () => res(req ? req.result : true);
+        t.onerror = t.onabort = () => { if (mode === 'readwrite') toast('Couldn’t save to this device (storage may be full).'); res(null); };
+      } catch (e) { res(null); }
+    });
+  },
+  get(s, k) { return this.tx(s, 'readonly', st => st.get(k)); },
+  put(s, k, v) { return this.tx(s, 'readwrite', st => st.put(v, k)); },
+  del(s, k) { return this.tx(s, 'readwrite', st => st.delete(k)); },
+  clear(s) { return this.tx(s, 'readwrite', st => st.clear()); }
+};
+function metaObj() {
+  return {v:1, name:S.name, bpm:S.bpm, beats:S.beats, metro:S.metro, countIn:S.countIn, metroVol:S.metroVol,
+    latencyMs:S.latencyMs, recMode:S.recMode, deviceId:S.deviceId,
+    tracks:S.tracks.map(t => ({id:t.id, name:t.name, player:t.player, inst:t.inst, vol:t.vol, pan:t.pan, mute:t.mute, solo:t.solo,
+      clip:t.clip ? {id:t.clip.id, start:t.clip.start, sr:t.clip.sr} : null}))};
+}
+let metaTimer;
+function saveMeta() { clearTimeout(metaTimer); metaTimer = setTimeout(() => IDB.put('meta', 'song', metaObj()), 350); }
+let persistAsked = false;
+function applyMeta(m) {
+  S.name = m.name || 'Untitled song'; S.bpm = m.bpm || 100; S.beats = m.beats || 4; S.metro = m.metro !== false;
+  S.countIn = m.countIn ?? 1; S.metroVol = m.metroVol ?? 0.6; S.latencyMs = m.latencyMs ?? null;
+  S.recMode = m.recMode || 'replace'; if (m.deviceId !== undefined) S.deviceId = m.deviceId || '';
+}
+async function loadSaved() {
+  await IDB.open();
+  const m = await IDB.get('meta', 'song');
+  if (m && Array.isArray(m.tracks) && m.tracks.length) {
+    applyMeta(m);
+    S.tracks = [];
+    for (const mt of m.tracks.slice(0, MAX_TRACKS)) {
+      const t = Object.assign(newTrack(), mt, {armed:false, clip:null});
+      if (!INST[t.inst]) t.inst = 'none';
+      if (mt.clip) {
+        const d = await IDB.get('audio', mt.clip.id);
+        if (d && d.length) t.clip = {id:mt.clip.id, start:mt.clip.start, sr:mt.clip.sr, data:d, peaks:computePeaks(d, mt.clip.sr)};
+      }
+      S.tracks.push(t);
+    }
+  } else {
+    S.tracks = [0, 1, 2, 3].map(() => newTrack());
+  }
+}
+
+/* ---------------- audio engine ---------------- */
+let ctx = null, master = null, metroOut = null;
+function ensureCtx() {
+  if (!ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    try { if (navigator.audioSession && !mic) navigator.audioSession.type = 'playback'; } catch (e) {}
+    ctx = new AC({latencyHint:'interactive'});
+    master = ctx.createGain(); master.connect(ctx.destination);
+    metroOut = ctx.createGain(); metroOut.gain.value = S.metroVol; metroOut.connect(ctx.destination);
+    S.tracks.forEach(nodesFor);
+  }
+  if (ctx.state !== 'running') ctx.resume();
+  return ctx;
+}
+function nodesFor(tr) {
+  if (!ctx || tr.g) return;
+  tr.g = ctx.createGain();
+  tr.p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+  if (tr.p) { tr.g.connect(tr.p); tr.p.connect(master); } else tr.g.connect(master);
+  applyMix(tr);
+}
+function effGain(tr) {
+  if (tr.mute) return 0;
+  if (S.tracks.some(t => t.solo) && !tr.solo) return 0;
+  return tr.vol * tr.vol * 1.5;
+}
+function applyMix(tr) {
+  if (!tr.g) return;
+  let g = effGain(tr);
+  if (recording && tr.armed) g = 0;
+  tr.g.gain.setTargetAtTime(g, ctx.currentTime, 0.015);
+  if (tr.p) tr.p.pan.setTargetAtTime(tr.pan, ctx.currentTime, 0.015);
+}
+function bufFor(clip) {
+  if (clip.buf) return clip.buf;
+  const b = ctx.createBuffer(1, clip.data.length, clip.sr);
+  if (b.copyToChannel) b.copyToChannel(clip.data, 0); else b.getChannelData(0).set(clip.data);
+  clip.buf = b; return b;
+}
+const beatDur = () => 60 / S.bpm;
+const barDur = () => S.beats * beatDur();
+function clipEnd(c) { return c.start + c.data.length / c.sr; }
+function songEnd() { let e = 0; for (const t of S.tracks) if (t.clip) e = Math.max(e, clipEnd(t.clip)); return e; }
+function curPos() { return (playing && ctx) ? ctx.currentTime - t0 : pos; }
+
+let t0 = 0, sources = [], schedTimer = null, beatIdx = 0;
+function click(t, accent, out, loud) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'square'; o.frequency.value = accent ? 1600 : 1000;
+  const peak = loud ? 0.9 : (accent ? 0.5 : 0.3);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + (loud ? 0.03 : 0.05));
+  o.connect(g); g.connect(out || metroOut);
+  o.start(t); o.stop(t + 0.07);
+}
+function startTransport(rec) {
+  ensureCtx();
+  playFrom = pos;
+  const bd = beatDur();
+  const countBeats = (rec && S.countIn) ? S.countIn * S.beats : 0;
+  const startAt = ctx.currentTime + LEAD + countBeats * bd;
+  t0 = startAt - pos;
+  for (const tr of S.tracks) {
+    nodesFor(tr);
+    const c = tr.clip;
+    if (!c || !c.data.length) continue;
+    if (rec && tr.armed) continue;
+    if (clipEnd(c) <= pos) continue;
+    const src = ctx.createBufferSource(); src.buffer = bufFor(c); src.connect(tr.g);
+    src.start(t0 + Math.max(c.start, pos), Math.max(0, pos - c.start));
+    sources.push(src);
+  }
+  for (let i = 0; i < countBeats; i++) click(ctx.currentTime + LEAD + i * bd, i % S.beats === 0);
+  beatIdx = Math.ceil(pos / bd - 1e-6);
+  playing = true;
+  schedTimer = setInterval(schedule, 25); schedule();
+  updateTransportUI(); startLoop();
+}
+function schedule() {
+  if (!playing) return;
+  const bd = beatDur(), horizon = ctx.currentTime + 0.15;
+  for (;;) {
+    const t = t0 + beatIdx * bd;
+    if (t > horizon) break;
+    if (S.metro && t >= ctx.currentTime - 0.005) click(t, beatIdx % S.beats === 0);
+    beatIdx++;
+  }
+}
+function haltPlayback() {
+  playing = false; clearInterval(schedTimer); schedTimer = null;
+  for (const s of sources) { try { s.stop(); } catch (e) {} }
+  sources = [];
+}
+async function stopTransport() {
+  if (!playing) return;
+  haltPlayback();
+  if (recording) await finishRecording();
+  pos = playFrom;
+  updateTransportUI(); updatePlayheads(); drawAll();
+}
+
+/* ---------------- recording ---------------- */
+const WORKLET = `
+class SixRec extends AudioWorkletProcessor {
+  constructor(){ super(); this.on=false; this.buf=new Float32Array(4096); this.n=0; this.t=0;
+    this.port.onmessage = e => { this.on = e.data; if(!this.on){ this.flush(); this.port.postMessage({done:true}); } }; }
+  flush(){ if(this.n){ this.port.postMessage({t:this.t, d:this.buf.slice(0,this.n)}); this.n=0; } }
+  process(inputs){
+    const inp = inputs[0];
+    if (this.on && inp && inp[0]) {
+      const ch = inp[0];
+      if (this.n + ch.length > this.buf.length) this.flush();
+      if (this.n === 0) this.t = currentTime;
+      if (inp.length > 1) { const r = inp[1]; for (let i=0;i<ch.length;i++) this.buf[this.n+i] = (ch[i]+r[i])*0.5; }
+      else this.buf.set(ch, this.n);
+      this.n += ch.length;
+      if (this.n >= this.buf.length) this.flush();
+    }
+    return true;
+  }
+}
+registerProcessor('jampass-rec', SixRec);`;
+let mic = null, micSrc = null, recNode = null, analyser = null, monGain = null, workletOK = false;
+let chunks = null, live = null, recDone = null, recFrom = 0, recTrack = null;
+
+async function openMic() {
+  ensureCtx();
+  if (mic) return true;
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast('The mic only works when the app is opened over https (e.g. your GitHub Pages link).', 5000); return false;
+  }
+  try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (e) {}
+  const audio = {echoCancellation:false, noiseSuppression:false, autoGainControl:false};
+  if (S.deviceId) audio.deviceId = {exact:S.deviceId};
+  try {
+    mic = await navigator.mediaDevices.getUserMedia({audio});
+  } catch (e) {
+    if (S.deviceId && e.name === 'OverconstrainedError') { S.deviceId = ''; saveMeta(); return openMic(); }
+    toast(e.name === 'NotAllowedError' ? 'Mic access was blocked. Allow the microphone for this site in your browser settings.' : 'Couldn’t open the mic: ' + e.message, 5000);
+    mic = null; return false;
+  }
+  try {
+    if (!workletOK) {
+      try { await ctx.audioWorklet.addModule('rec-worklet.js'); }
+      catch (e1) { await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET], {type:'text/javascript'}))); }
+      workletOK = true;
+    }
+  } catch (e) { toast('This browser can’t record audio here. Try an up-to-date Chrome or Safari.', 5000); closeMic(); return false; }
+  micSrc = ctx.createMediaStreamSource(mic);
+  recNode = new AudioWorkletNode(ctx, 'jampass-rec');
+  const sink = ctx.createGain(); sink.gain.value = 0;
+  micSrc.connect(recNode); recNode.connect(sink); sink.connect(ctx.destination);
+  analyser = ctx.createAnalyser(); analyser.fftSize = 1024; micSrc.connect(analyser);
+  monGain = ctx.createGain(); monGain.gain.value = S.monitor ? 1 : 0; micSrc.connect(monGain); monGain.connect(ctx.destination);
+  recNode.port.onmessage = e => {
+    const m = e.data;
+    if (m.done) { if (recDone) { const r = recDone; recDone = null; r(); } return; }
+    if (chunks) { chunks.push(m); if (live) livePush(m); }
+  };
+  const tr = mic.getAudioTracks()[0];
+  if (tr) tr.addEventListener('ended', () => { if (!recording) { closeMic(); S.tracks.forEach(t => t.armed = false); updateTrackStates(); toast('Mic disconnected'); } });
+  return true;
+}
+function closeMic() {
+  if (mic) { mic.getTracks().forEach(t => t.stop()); mic = null; }
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+  try { micSrc && micSrc.disconnect(); recNode && recNode.disconnect(); monGain && monGain.disconnect(); } catch (e) {}
+  micSrc = recNode = analyser = monGain = null;
+}
+function estLatency() {
+  if (!ctx) return 0.02;
+  let l = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
+  if (!ctx.outputLatency) l += 0.02;
+  try { const st = mic && mic.getAudioTracks()[0].getSettings(); if (st && st.latency) l += st.latency; } catch (e) {}
+  return l;
+}
+function latency() { return S.latencyMs != null ? S.latencyMs / 1000 : estLatency(); }
+
+function livePush(m) {
+  if (live.start === null) live.start = m.t - t0 - latency();
+  const d = m.d;
+  for (let j = 0; j < d.length; j++) {
+    const v = d[j] < 0 ? -d[j] : d[j];
+    if (v > live.cur) live.cur = v;
+    if (++live.cnt >= live.step) { live.peaks.push(live.cur); live.cur = 0; live.cnt = 0; }
+  }
+}
+async function setArm(tr, on) {
+  if (recording) return;
+  if (on) {
+    S.tracks.forEach(t => t.armed = false); tr.armed = true; updateTrackStates();
+    const ok = await openMic();
+    if (!ok) tr.armed = false;
+  } else {
+    tr.armed = false;
+    if (!S.tracks.some(t => t.armed)) closeMic();
+  }
+  updateTrackStates(); startLoop();
+}
+let wakeLock = null;
+async function wake(on) {
+  try {
+    if (on && navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen');
+    else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) {}
+}
+async function startRecording() {
+  if (recording) return;
+  if (playing) await stopTransport();
+  let tr = S.tracks.find(t => t.armed);
+  if (!tr) {
+    tr = S.tracks.find(t => !t.clip);
+    if (!tr) { toast('Tap R on the track you want to record onto.'); return; }
+    await setArm(tr, true);
+    if (!tr.armed) return;
+    toast('Recording onto ' + label(tr));
+  }
+  if (!await openMic()) return;
+  chunks = []; live = {peaks:[], cur:0, cnt:0, step:ctx.sampleRate / PEAKS_PER_SEC, start:null};
+  recording = true; recFrom = pos; recTrack = tr;
+  S.tracks.forEach(applyMix);
+  recNode.port.postMessage(true);
+  startTransport(true);
+  wake(true);
+}
+async function finishRecording() {
+  recording = false;
+  const done = new Promise(r => { recDone = r; setTimeout(r, 600); });
+  if (recNode) recNode.port.postMessage(false);
+  await done;
+  const ch = chunks, tr = recTrack;
+  chunks = null; live = null; recTrack = null;
+  S.tracks.forEach(applyMix); wake(false); updateTransportUI();
+  if (!ch || !ch.length || !tr) return;
+  const sr = ctx.sampleRate;
+  let total = 0; for (const c of ch) total += c.d.length;
+  let data = new Float32Array(total); let o = 0;
+  for (const c of ch) { data.set(c.d, o); o += c.d.length; }
+  let start = ch[0].t - t0 - latency();
+  if (start < recFrom) {
+    const cut = Math.round((recFrom - start) * sr);
+    if (cut >= data.length - sr * 0.05) { toast('Stopped during the count-in, so nothing was recorded.'); return; }
+    data = data.slice(cut); start = recFrom;
+  }
+  fadeEdges(data, sr);
+  if (S.recMode === 'punch' && tr.clip && tr.clip.sr === sr) setClip(tr, mergeClip(tr.clip, start, data, sr));
+  else setClip(tr, {start, sr, data});
+  toast(`Saved ${fmt(data.length / sr)} on ${label(tr)}`);
+}
+function fadeEdges(d, sr) {
+  const n = Math.min(Math.round(sr * 0.004), d.length >> 1);
+  for (let i = 0; i < n; i++) { const g = i / n; d[i] *= g; d[d.length - 1 - i] *= g; }
+}
+function mergeClip(old, start, data, sr) {
+  const s = Math.min(old.start, start), e = Math.max(clipEnd(old), start + data.length / sr);
+  const out = new Float32Array(Math.ceil((e - s) * sr) + 2);
+  const oOff = Math.round((old.start - s) * sr), nOff = Math.round((start - s) * sr);
+  out.set(old.data.subarray(0, Math.min(old.data.length, out.length - oOff)), oOff);
+  out.set(data.subarray(0, Math.min(data.length, out.length - nOff)), nOff);
+  return {start:s, sr, data:out};
+}
+function computePeaks(data, sr) {
+  const step = sr / PEAKS_PER_SEC, n = Math.ceil(data.length / step), p = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let m = 0; const a = Math.floor(i * step), b = Math.min(data.length, Math.floor((i + 1) * step));
+    for (let j = a; j < b; j++) { const v = data[j] < 0 ? -data[j] : data[j]; if (v > m) m = v; }
+    p[i] = m;
+  }
+  return p;
+}
+function setClip(tr, c) {
+  if (tr.clip) IDB.del('audio', tr.clip.id);
+  if (!c) { tr.clip = null; }
+  else {
+    tr.clip = {id:uid(), start:c.start, sr:c.sr, data:c.data, peaks:computePeaks(c.data, c.sr)};
+    IDB.put('audio', tr.clip.id, tr.clip.data);
+    if (!persistAsked && navigator.storage && navigator.storage.persist) { persistAsked = true; navigator.storage.persist().catch(() => {}); }
+  }
+  saveMeta(); updateTrackStates(); drawAll();
+}
+
+/* ---------------- latency calibration ---------------- */
+async function calibrate(statusEl) {
+  if (playing) await stopTransport();
+  const hadMic = !!mic;
+  if (!await openMic()) return;
+  const wasMon = S.monitor; if (monGain) monGain.gain.value = 0;
+  statusEl.textContent = 'Listening… keep quiet for 4 seconds.';
+  chunks = [];
+  recNode.port.postMessage(true);
+  const N = 6, gap = 0.5, first = ctx.currentTime + 0.4, times = [];
+  for (let i = 0; i < N; i++) { const t = first + i * gap; click(t, true, ctx.destination, true); times.push(t); }
+  await new Promise(r => setTimeout(r, (0.4 + N * gap + 0.5) * 1000));
+  const done = new Promise(r => { recDone = r; setTimeout(r, 600); });
+  recNode.port.postMessage(false); await done;
+  const ch = chunks; chunks = null;
+  if (monGain) monGain.gain.value = wasMon ? 1 : 0;
+  if (!hadMic && !S.tracks.some(t => t.armed)) closeMic();
+  if (!ch || !ch.length) { statusEl.textContent = 'No audio came in. Try again.'; return; }
+  const sr = ctx.sampleRate; let total = 0; for (const c of ch) total += c.d.length;
+  const data = new Float32Array(total); let o = 0; for (const c of ch) { data.set(c.d, o); o += c.d.length; }
+  const tStart = ch[0].t, offs = [];
+  for (const t of times) {
+    const a = Math.max(0, Math.round((t - tStart) * sr)), b = Math.min(data.length, a + Math.round(0.45 * sr));
+    let max = 0; for (let i = a; i < b; i++) { const v = Math.abs(data[i]); if (v > max) max = v; }
+    if (max < 0.02) continue;
+    const th = max * 0.35;
+    for (let i = a; i < b; i++) if (Math.abs(data[i]) >= th) { offs.push((i - a) / sr); break; }
+  }
+  if (offs.length < 3) { statusEl.textContent = 'Couldn’t hear the clicks. Unplug headphones, turn the volume up, and try again.'; return; }
+  offs.sort((x, y) => x - y);
+  const med = offs[offs.length >> 1];
+  S.latencyMs = Math.round(med * 1000); saveMeta();
+  statusEl.textContent = `Done: ${S.latencyMs} ms. New takes will be shifted to line up.`;
+  const inp = document.getElementById('latInput'); if (inp) inp.value = S.latencyMs;
+}
+
+/* ---------------- import / export ---------------- */
+function decode(ab) {
+  return new Promise((res, rej) => { const p = ctx.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); });
+}
+async function importInto(tr, file) {
+  ensureCtx();
+  toast('Loading ' + file.name + '…');
+  try {
+    const b = await decode(await file.arrayBuffer());
+    const n = b.length, nc = b.numberOfChannels, d = new Float32Array(n);
+    for (let c = 0; c < nc; c++) { const x = b.getChannelData(c); for (let i = 0; i < n; i++) d[i] += x[i] / nc; }
+    setClip(tr, {start:0, sr:b.sampleRate, data:d});
+    toast(`Imported onto ${label(tr)} (${fmt(n / b.sampleRate)})`);
+  } catch (e) { toast('Couldn’t read that file. WAV, MP3 and M4A work best.', 4500); }
+}
+function encodeWav(chs, sr) {
+  const n = chs[0].length, nc = chs.length, bytes = n * nc * 2;
+  const buf = new ArrayBuffer(44 + bytes), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + bytes, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, nc, true); v.setUint32(24, sr, true);
+  v.setUint32(28, sr * nc * 2, true); v.setUint16(32, nc * 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, bytes, true);
+  const out = new Int16Array(buf, 44, n * nc);
+  for (let i = 0, k = 0; i < n; i++) for (let c = 0; c < nc; c++) {
+    let s = chs[c][i]; s = s < -1 ? -1 : s > 1 ? 1 : s; out[k++] = s < 0 ? s * 0x8000 : s * 0x7fff;
+  }
+  return new Blob([buf], {type:'audio/wav'});
+}
+const safe = s => (s || 'untitled').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').slice(0, 40) || 'untitled';
+function download(blob, filename) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 60000);
+}
+async function deliver(blob, filename) {
+  const touch = matchMedia('(pointer:coarse)').matches;
+  let file = null;
+  try { file = new File([blob], filename, {type:blob.type}); } catch (e) {}
+  const canShare = file && navigator.canShare && navigator.canShare({files:[file]});
+  if (!touch || !canShare) { download(blob, filename); toast('Saved ' + filename); return; }
+  sheet('Ready: ' + filename, sh => {
+    const p = document.createElement('p'); p.className = 'note';
+    p.textContent = `${(blob.size / 1048576).toFixed(1)} MB. Share opens the iPhone share sheet: Messages, AirDrop, Save to Files, and more.`;
+    sh.appendChild(p);
+    item(sh, 'Share…', null, async () => {
+      try { await navigator.share({files:[file]}); closeSheet(); }
+      catch (e) { if (e.name !== 'AbortError') { download(blob, filename); closeSheet(); } }
+    }, 'primary');
+    item(sh, 'Download instead', null, () => { download(blob, filename); closeSheet(); });
+  });
+}
+function trackWav(tr) {
+  const c = tr.clip, pad = Math.round(c.start * c.sr);
+  let d;
+  if (pad >= 0) { d = new Float32Array(pad + c.data.length); d.set(c.data, pad); }
+  else d = c.data.subarray(-pad);
+  return encodeWav([d], c.sr);
+}
+async function renderMix(sr, nch) {
+  const end = songEnd();
+  if (end <= 0) { toast('Nothing recorded yet.'); return null; }
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const oc = new OAC(nch, Math.ceil((end + 0.5) * sr), sr);
+  for (const tr of S.tracks) {
+    const c = tr.clip, g = effGain(tr);
+    if (!c || !c.data.length || g === 0) continue;
+    const b = oc.createBuffer(1, c.data.length, c.sr); b.getChannelData(0).set(c.data);
+    const s = oc.createBufferSource(); s.buffer = b;
+    const gn = oc.createGain(); gn.gain.value = g; s.connect(gn);
+    if (nch > 1 && oc.createStereoPanner) { const p = oc.createStereoPanner(); p.pan.value = tr.pan; gn.connect(p); p.connect(oc.destination); }
+    else gn.connect(oc.destination);
+    if (c.start >= 0) s.start(c.start); else s.start(0, -c.start);
+  }
+  const r = await oc.startRendering();
+  const chs = []; let peak = 0;
+  for (let c = 0; c < r.numberOfChannels; c++) { const d = r.getChannelData(c); chs.push(d); for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > peak) peak = v; } }
+  if (peak > 0.98) { const k = 0.98 / peak; for (const d of chs) for (let i = 0; i < d.length; i++) d[i] *= k; }
+  return {chs, sr};
+}
+async function exportMix(guide) {
+  ensureCtx();
+  toast(guide ? 'Making guide mix…' : 'Mixing down…');
+  const m = await renderMix(guide ? 22050 : (ctx.sampleRate || 48000), guide ? 1 : 2);
+  if (!m) return;
+  await deliver(encodeWav(m.chs, m.sr), safe(S.name) + (guide ? '-guide-mix.wav' : '-mix.wav'));
+}
+function saveProjectFile() {
+  const meta = metaObj(); delete meta.deviceId; delete meta.latencyMs;
+  const parts = [];
+  meta.tracks.forEach((mt, i) => { const c = S.tracks[i].clip; if (c) mt.clip.len = c.data.length; });
+  const hdr = new TextEncoder().encode(JSON.stringify(meta));
+  const pad = (8 + hdr.length) % 2;
+  const head = new ArrayBuffer(8), dv = new DataView(head);
+  'SIXT'.split('').forEach((ch, i) => dv.setUint8(i, ch.charCodeAt(0)));
+  dv.setUint32(4, hdr.length + pad, true);
+  parts.push(head, hdr); if (pad) parts.push(new Uint8Array([32]));
+  for (const t of S.tracks) if (t.clip) {
+    const d = t.clip.data, i16 = new Int16Array(d.length);
+    for (let i = 0; i < d.length; i++) { let s = d[i]; s = s < -1 ? -1 : s > 1 ? 1 : s; i16[i] = s < 0 ? s * 0x8000 : s * 0x7fff; }
+    parts.push(i16);
+  }
+  deliver(new Blob(parts, {type:'application/octet-stream'}), safe(S.name) + '.jampass');
+}
+async function openProjectFile(file) {
+  try {
+    const ab = await file.arrayBuffer(), dv = new DataView(ab);
+    if (String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3)) !== 'SIXT') throw new Error('bad');
+    const hl = dv.getUint32(4, true);
+    const meta = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, 8, hl)));
+    let off = 8 + hl;
+    if (playing) await stopTransport();
+    S.tracks.forEach(t => { t.armed = false; try { t.g && t.g.disconnect(); t.p && t.p.disconnect(); } catch (e) {} });
+    closeMic();
+    await IDB.clear('audio');
+    const keepDev = S.deviceId, keepLat = S.latencyMs;
+    applyMeta(meta); S.deviceId = keepDev; S.latencyMs = keepLat;
+    S.tracks = [];
+    for (const mt of meta.tracks.slice(0, MAX_TRACKS)) {
+      const t = Object.assign(newTrack(), mt, {id:uid(), armed:false, clip:null});
+      if (!INST[t.inst]) t.inst = 'none';
+      if (mt.clip && mt.clip.len) {
+        const i16 = new Int16Array(ab, off, mt.clip.len); off += mt.clip.len * 2;
+        const d = new Float32Array(mt.clip.len); for (let i = 0; i < d.length; i++) d[i] = i16[i] / 32768;
+        t.clip = {id:uid(), start:mt.clip.start, sr:mt.clip.sr, data:d, peaks:computePeaks(d, mt.clip.sr)};
+        IDB.put('audio', t.clip.id, d);
+      }
+      S.tracks.push(t);
+    }
+    if (ctx) S.tracks.forEach(nodesFor);
+    pos = 0; syncControls(); renderTracks(); saveMeta();
+    toast('Opened ' + S.name);
+  } catch (e) { toast('That isn’t a JamPass project file.'); }
+}
+
+/* ---------------- drawing ---------------- */
+let lastDur = 0;
+function viewDur() {
+  let d = Math.max(20, songEnd() + 3, pos + 3);
+  if (playing) d = Math.max(d, curPos() + 4);
+  return Math.ceil(d / 10) * 10;
+}
+function fitCanvas(cv) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return {g, w, h};
+}
+function drawRuler() {
+  const {g, w, h} = fitCanvas($('#ruler')); const dur = lastDur;
+  g.clearRect(0, 0, w, h);
+  const bar = barDur(), pxBar = w / dur * bar, every = Math.max(1, Math.ceil(30 / pxBar));
+  const pxBeat = pxBar / S.beats;
+  g.font = '10px ui-monospace,Menlo,monospace'; g.textBaseline = 'middle';
+  for (let b = 0; b * bar < dur; b++) {
+    const x = b * pxBar;
+    g.fillStyle = '#5a606b'; g.fillRect(x, 0, 1, h);
+    if (b % every === 0) { g.fillStyle = '#b8bcc4'; g.fillText(String(b + 1), x + 3, h / 2); }
+    if (pxBeat > 7) for (let k = 1; k < S.beats; k++) { g.fillStyle = '#383c44'; g.fillRect(x + k * pxBeat, h * 0.65, 1, h * 0.35); }
+  }
+}
+function drawPeaks(g, peaks, start, color, w, h, dur) {
+  const pps = w / dur, mid = h / 2; g.fillStyle = color;
+  for (let x = 0; x < w; x++) {
+    const ta = x / pps - start, tb = (x + 1) / pps - start;
+    if (tb < 0) continue;
+    const i0 = Math.max(0, Math.floor(ta * PEAKS_PER_SEC));
+    if (i0 >= peaks.length) break;
+    const i1 = Math.min(peaks.length, Math.max(i0 + 1, Math.ceil(tb * PEAKS_PER_SEC)));
+    let m = 0; for (let i = i0; i < i1; i++) if (peaks[i] > m) m = peaks[i];
+    const hh = Math.max(0.75, Math.pow(Math.min(1, m), 0.6) * (mid - 3));
+    g.fillRect(x, mid - hh, 1, hh * 2);
+  }
+}
+function drawWave(tr) {
+  if (!tr.el) return;
+  const {g, w, h} = fitCanvas(tr.el.cv); const dur = lastDur;
+  g.clearRect(0, 0, w, h);
+  const bar = barDur(), pxBar = w / dur * bar;
+  if (pxBar > 4) { g.fillStyle = '#22252b'; for (let b = 1; b * bar < dur; b++) g.fillRect(b * pxBar, 0, 1, h); }
+  const color = colorOf(tr);
+  const isLive = recording && tr === recTrack && live && live.start !== null;
+  if (tr.clip) drawPeaks(g, tr.clip.peaks, tr.clip.start, isLive ? color + '44' : color, w, h, dur);
+  if (isLive) drawPeaks(g, live.peaks, live.start, '#ff6464', w, h, dur);
+  tr.el.empty.style.display = (tr.clip || isLive) ? 'none' : 'flex';
+}
+function drawAll() {
+  lastDur = viewDur();
+  drawRuler(); S.tracks.forEach(drawWave); updatePlayheads();
+}
+function updatePlayheads() {
+  const p = Math.max(0, curPos()), f = (p / lastDur * 100) + '%';
+  $('#rulerPh').style.left = f;
+  for (const t of S.tracks) if (t.el) t.el.ph.style.left = f;
+}
+function fmt(t) {
+  t = Math.max(0, t); const m = Math.floor(t / 60), s = t - m * 60;
+  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+}
+function updateClock() {
+  const p = curPos(), ck = $('#clock');
+  if (p < 0) {
+    ck.classList.add('count');
+    $('#clockT').textContent = 'Count ' + Math.ceil(-p / beatDur() - 1e-6);
+    $('#clockB').textContent = 'Get ready…';
+  } else {
+    ck.classList.remove('count');
+    $('#clockT').textContent = fmt(p);
+    const bd = beatDur(), bar = Math.floor(p / barDur());
+    $('#clockB').textContent = `Bar ${bar + 1} · Beat ${Math.floor((p - bar * barDur()) / bd + 1e-6) + 1}`;
+  }
+}
+
+/* ---------------- UI loop ---------------- */
+let loopOn = false, lastWaveDraw = 0;
+const meterBuf = new Float32Array(1024);
+function startLoop() { if (!loopOn) { loopOn = true; requestAnimationFrame(loop); } }
+function loop(ts) {
+  if (playing) {
+    const p = curPos();
+    if (viewDur() !== lastDur) drawAll();
+    if (recording && recTrack && ts - lastWaveDraw > 120) { lastWaveDraw = ts; drawWave(recTrack); }
+    if (!recording) { const e = songEnd(); if (p > Math.max(e, playFrom) + 0.4) stopTransport(); }
+    updatePlayheads();
+  }
+  updateClock();
+  const armed = S.tracks.find(t => t.armed);
+  if (armed && analyser && armed.el) {
+    analyser.getFloatTimeDomainData(meterBuf);
+    let m = 0; for (let i = 0; i < meterBuf.length; i++) { const v = Math.abs(meterBuf[i]); if (v > m) m = v; }
+    const bar = armed.el.meter; bar.style.height = Math.min(100, Math.pow(m, 0.5) * 100) + '%';
+    bar.classList.toggle('hot', m > 0.98);
+  }
+  if (playing || armed) requestAnimationFrame(loop); else loopOn = false;
+}
+
+/* ---------------- track UI ---------------- */
+function renderTracks() {
+  const box = $('#tracks'); box.innerHTML = '';
+  S.tracks.forEach((tr, i) => {
+    const el = document.createElement('div'); el.className = 'track';
+    el.style.setProperty('--c', colorOf(tr));
+    el.innerHTML = `
+      <div class="r1"><span class="num">${i + 1}</span><input class="tname" maxlength="24" aria-label="Track name" placeholder="Name">
+        <select class="tsel" aria-label="Instrument">${INST_ORDER.map(k => `<option value="${k}">${INST[k][0]}</option>`).join('')}</select>
+        <button class="sm arm" title="Arm for recording">R</button><button class="sm mute" title="Mute">M</button><button class="sm solo" title="Solo">S</button><button class="sm more" title="More" aria-label="Track options">⋯</button></div>
+      <div class="r2"><input class="player" placeholder="Player" maxlength="20" aria-label="Player">
+        <label>Vol<input type="range" class="vol" min="0" max="1" step="0.01"></label>
+        <label title="Double-tap to center">Pan<input type="range" class="pan" min="-1" max="1" step="0.05"></label></div>
+      <div class="wave"><canvas></canvas><div class="empty">Empty. Tap R and record, or ⋯ → Import audio</div><div class="ph"></div><div class="meter"><i></i></div></div>`;
+    const q = s => el.querySelector(s);
+    tr.el = {root:el, cv:q('canvas'), ph:q('.ph'), meter:q('.meter i'), empty:q('.empty'), arm:q('.arm'), mute:q('.mute'), solo:q('.solo')};
+    const name = q('.tname'); name.value = tr.name;
+    name.addEventListener('input', () => { tr.name = name.value; saveMeta(); });
+    const sel = q('.tsel'); sel.value = tr.inst;
+    sel.addEventListener('change', () => {
+      tr.inst = sel.value;
+      el.style.setProperty('--c', colorOf(tr)); drawWave(tr); saveMeta();
+    });
+    const pl = q('.player'); pl.value = tr.player;
+    pl.addEventListener('input', () => { tr.player = pl.value; saveMeta(); });
+    const vol = q('.vol'); vol.value = tr.vol;
+    vol.addEventListener('input', () => { tr.vol = +vol.value; applyMix(tr); saveMeta(); });
+    const pan = q('.pan'); pan.value = tr.pan;
+    pan.addEventListener('input', () => { tr.pan = +pan.value; applyMix(tr); saveMeta(); });
+    pan.addEventListener('dblclick', () => { tr.pan = 0; pan.value = 0; applyMix(tr); saveMeta(); });
+    tr.el.arm.addEventListener('click', () => setArm(tr, !tr.armed));
+    tr.el.mute.addEventListener('click', () => { tr.mute = !tr.mute; S.tracks.forEach(applyMix); updateTrackStates(); saveMeta(); });
+    tr.el.solo.addEventListener('click', () => { tr.solo = !tr.solo; S.tracks.forEach(applyMix); updateTrackStates(); saveMeta(); });
+    q('.more').addEventListener('click', () => trackMenu(tr));
+    bindSeek(q('.wave'));
+    box.appendChild(el);
+  });
+  $('#addTrack').disabled = S.tracks.length >= MAX_TRACKS;
+  $('#addTrack').textContent = S.tracks.length >= MAX_TRACKS ? 'Max 16 tracks' : '+ Add track';
+  updateTrackStates();
+  requestAnimationFrame(drawAll);
+}
+function updateTrackStates() {
+  for (const t of S.tracks) {
+    if (!t.el) continue;
+    t.el.arm.classList.toggle('on', t.armed); t.el.root.classList.toggle('armed', t.armed);
+    t.el.mute.classList.toggle('on', t.mute); t.el.solo.classList.toggle('on', t.solo);
+    t.el.empty.style.display = t.clip ? 'none' : 'flex';
+    t.el.arm.disabled = recording;
+  }
+}
+function bindSeek(elm) {
+  let down = false;
+  const go = e => { const r = elm.getBoundingClientRect(); seek((e.clientX - r.left) / r.width * lastDur); };
+  elm.addEventListener('pointerdown', e => { if (recording) return; down = true; elm.setPointerCapture && elm.setPointerCapture(e.pointerId); go(e); });
+  elm.addEventListener('pointermove', e => { if (down && !playing) go(e); });
+  const up = () => { down = false; };
+  elm.addEventListener('pointerup', up); elm.addEventListener('pointercancel', up);
+}
+function seek(t) {
+  if (recording) return;
+  t = Math.max(0, Math.min(t, lastDur));
+  if (playing) { haltPlayback(); pos = t; startTransport(false); }
+  else { pos = t; updateClock(); updatePlayheads(); }
+}
+function updateTransportUI() {
+  const pb = $('#playBtn'); pb.textContent = playing ? '■' : '▶'; pb.classList.toggle('on', playing && !recording);
+  pb.setAttribute('aria-label', playing ? 'Stop' : 'Play');
+  $('#recBtn').classList.toggle('on', recording);
+  updateTrackStates(); updateClock();
+}
+function syncControls() {
+  $('#songName').value = S.name; updateTempoLbl(); $('#metroBtn').classList.toggle('on', S.metro);
+  if (metroOut) metroOut.gain.value = S.metroVol;
+}
+
+/* ---------------- menus ---------------- */
+function trackMenu(tr) {
+  sheet(`${label(tr)}${tr.player ? ' · ' + tr.player : ''}`, sh => {
+    item(sh, 'Import audio onto this track', 'A voice memo or a friend’s take. It starts at 0:00 and replaces this track.', () => {
+      closeSheet(); const fi = $('#fileIn'); fi.value = ''; fi.onchange = () => fi.files[0] && importInto(tr, fi.files[0]); fi.click();
+    });
+    if (tr.clip) {
+      item(sh, 'Export this track (WAV)', 'Starts at 0:00 so it lines up when someone imports it.', () => {
+        closeSheet(); deliver(trackWav(tr), safe(S.name) + '-' + safe(tr.player || label(tr)) + '.wav');
+      });
+      const lab = document.createElement('label'); lab.className = 'f'; sh.appendChild(lab);
+      const setLab = () => lab.textContent = `Nudge timing (take starts at ${(tr.clip.start * 1000).toFixed(0)} ms)`;
+      setLab();
+      const row = document.createElement('div'); row.className = 'row';
+      [-50, -10, -2, 2, 10, 50].forEach(ms => {
+        const b = document.createElement('button'); b.textContent = (ms > 0 ? '+' : '') + ms;
+        b.onclick = () => { tr.clip.start = Math.round((tr.clip.start + ms / 1000) * 1000) / 1000; setLab(); saveMeta(); drawAll(); };
+        row.appendChild(b);
+      });
+      sh.appendChild(row);
+      const n = document.createElement('p'); n.className = 'note'; n.textContent = 'Values are milliseconds. Minus moves the take earlier, plus moves it later.'; sh.appendChild(n);
+      item(sh, 'Clear this take', null, () => { closeSheet(); confirmSheet('Clear take?', `This erases the recording on “${label(tr)}”.`, 'Clear', () => setClip(tr, null)); }, 'danger');
+    }
+    if (S.tracks.length > 1) item(sh, 'Delete track', null, () => {
+      closeSheet();
+      confirmSheet('Delete track?', `Remove “${label(tr)}” and its recording?`, 'Delete', () => {
+        if (tr.armed) setArm(tr, false);
+        if (tr.clip) IDB.del('audio', tr.clip.id);
+        try { tr.g && tr.g.disconnect(); tr.p && tr.p.disconnect(); } catch (e) {}
+        S.tracks.splice(S.tracks.indexOf(tr), 1); renderTracks(); saveMeta();
+      });
+    }, 'danger');
+  });
+}
+function mainMenu() {
+  sheet('Song', sh => {
+    item(sh, 'Export mix (WAV)', 'Full-quality stereo mixdown of what you hear (respects mute, solo, volume and pan).', () => { closeSheet(); exportMix(false); });
+    item(sh, 'Send a guide mix to a friend', 'Small mono file they can import and play along to.', () => { closeSheet(); exportMix(true); });
+    item(sh, 'Save project file', 'The whole song with every track, to back up or pass to another phone.', () => { closeSheet(); saveProjectFile(); });
+    item(sh, 'Open project file', 'Load a .jampass project file. Replaces the current song.', () => {
+      closeSheet(); const fi = $('#projIn'); fi.value = '';
+      fi.onchange = () => { const f = fi.files[0]; if (f) confirmSheet('Open project?', 'This replaces the song that’s open now. Save a project file first if you want to keep it.', 'Open', () => openProjectFile(f)); };
+      fi.click();
+    });
+    item(sh, 'Settings', 'Input, latency calibration, punch-in, monitoring, click volume.', () => settingsMenu());
+    item(sh, 'How to jam with friends', null, () => { closeSheet(); const h = $('#help'); h.open = true; h.scrollIntoView({behavior:'smooth'}); });
+    item(sh, 'New song', 'Clears all tracks on this device.', () => {
+      confirmSheet('Start a new song?', 'All tracks on this device will be erased. Save a project file first if you want to keep this one.', 'Erase & start new', newSong);
+    }, 'danger');
+  });
+}
+async function newSong() {
+  if (playing) await stopTransport();
+  S.tracks.forEach(t => { if (t.armed) t.armed = false; try { t.g && t.g.disconnect(); t.p && t.p.disconnect(); } catch (e) {} });
+  closeMic(); await IDB.clear('audio');
+  S.name = 'Untitled song'; S.tracks = [0, 1, 2, 3].map(() => newTrack());
+  if (ctx) S.tracks.forEach(nodesFor);
+  pos = 0; syncControls(); renderTracks(); saveMeta();
+}
+const SIGS = {3:'3/4', 4:'4/4', 6:'6/8'};
+function updateTempoLbl() {
+  $('#tempoLbl').textContent = `${S.bpm} BPM · ${SIGS[S.beats] || S.beats + '/4'}`;
+  $('#countLbl').textContent = S.countIn ? `${S.countIn}-bar count` : 'no count-in';
+}
+function tempoMenu() {
+  if (playing) { toast('Stop first to change the tempo.'); return; }
+  sheet('Tempo', sh => {
+    const big = document.createElement('div'); big.className = 'bpmBig';
+    const out = document.createElement('output');
+    const show = () => { out.innerHTML = ''; out.append(String(S.bpm)); const sm = document.createElement('small'); sm.textContent = 'BPM'; out.appendChild(sm); };
+    const setBpm = v => { S.bpm = Math.max(40, Math.min(240, Math.round(v))); show(); updateTempoLbl(); drawAll(); saveMeta(); };
+    const mk = (txt, d) => { const b = document.createElement('button'); b.textContent = txt; b.onclick = () => setBpm(S.bpm + d); return b; };
+    show(); big.append(mk('−5', -5), mk('−1', -1), out, mk('+1', 1), mk('+5', 5)); sh.appendChild(big);
+    const tap = document.createElement('button'); tap.className = 'item primary'; tap.style.textAlign = 'center'; tap.style.height = '56px';
+    tap.textContent = 'Tap tempo (tap along to the beat)';
+    let taps = [];
+    tap.addEventListener('pointerdown', () => {
+      const now = performance.now();
+      if (taps.length && now - taps[taps.length - 1] > 2000) taps = [];
+      taps.push(now); if (taps.length > 8) taps.shift();
+      if (taps.length >= 2) setBpm(60000 / ((taps[taps.length - 1] - taps[0]) / (taps.length - 1)));
+      tap.textContent = taps.length < 2 ? 'Keep tapping…' : `Tap tempo: ${S.bpm} BPM`;
+    });
+    sh.appendChild(tap);
+    const seg = (lbl, opts, get, set) => {
+      const l = document.createElement('label'); l.className = 'f'; l.textContent = lbl; sh.appendChild(l);
+      const row = document.createElement('div'); row.className = 'seg';
+      opts.forEach(([v, t]) => { const b = document.createElement('button'); b.textContent = t; b.classList.toggle('on', get() === v);
+        b.onclick = () => { set(v); row.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on'); updateTempoLbl(); drawAll(); saveMeta(); };
+        row.appendChild(b); });
+      sh.appendChild(row);
+    };
+    seg('Time signature', [[3, '3/4'], [4, '4/4'], [6, '6/8']], () => S.beats, v => S.beats = v);
+    seg('Count-in before recording', [[0, 'Off'], [1, '1 bar'], [2, '2 bars']], () => S.countIn, v => S.countIn = v);
+    const d = document.createElement('div'); d.className = 'row'; const db = document.createElement('button'); db.textContent = 'Done'; db.onclick = closeSheet; d.appendChild(db); sh.appendChild(d);
+  });
+}
+async function settingsMenu() {
+  const sh = sheet('Settings', () => {});
+  const field = (label) => { const l = document.createElement('label'); l.className = 'f'; l.textContent = label; sh.appendChild(l); return l; };
+
+  field('Input (mic or USB audio interface)');
+  const dev = document.createElement('select'); sh.appendChild(dev);
+  const fill = async () => {
+    dev.innerHTML = '';
+    const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Default microphone'; dev.appendChild(o0);
+    try {
+      const list = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput' && d.deviceId && d.deviceId !== 'default');
+      list.forEach((d, i) => { const o = document.createElement('option'); o.value = d.deviceId; o.textContent = d.label || ('Input ' + (i + 1)); dev.appendChild(o); });
+      if (list.length && !list[0].label) { const n = document.createElement('p'); n.className = 'note'; n.textContent = 'Arm a track once to see input names.'; dev.after(n); }
+    } catch (e) {}
+    dev.value = S.deviceId; if (dev.value !== S.deviceId) dev.value = '';
+  };
+  if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) await fill();
+  dev.addEventListener('change', async () => {
+    S.deviceId = dev.value; saveMeta();
+    if (mic && !recording) { closeMic(); const a = S.tracks.find(t => t.armed); if (a && !await openMic()) { a.armed = false; updateTrackStates(); } }
+  });
+
+  field('Latency compensation (ms)');
+  const lat = document.createElement('input'); lat.type = 'number'; lat.id = 'latInput'; lat.inputMode = 'numeric'; lat.min = 0; lat.max = 1000;
+  lat.placeholder = 'Auto (' + Math.round(estLatency() * 1000) + ' ms estimated)';
+  lat.value = S.latencyMs ?? ''; sh.appendChild(lat);
+  const lrow = document.createElement('div'); lrow.className = 'row';
+  [-10, -1, 1, 10].forEach(dm => { const b = document.createElement('button'); b.textContent = (dm > 0 ? '+' : '') + dm + ' ms';
+    b.onclick = () => { const base = S.latencyMs ?? Math.round(estLatency() * 1000); S.latencyMs = Math.max(0, Math.min(1000, base + dm)); lat.value = S.latencyMs; saveMeta(); };
+    lrow.appendChild(b); });
+  sh.appendChild(lrow);
+  lat.addEventListener('change', () => { S.latencyMs = lat.value === '' ? null : Math.max(0, Math.min(1000, +lat.value)); saveMeta(); });
+  const cal = document.createElement('div'); cal.className = 'row';
+  const cb = document.createElement('button'); cb.textContent = 'Calibrate'; cb.className = 'primary';
+  const ab = document.createElement('button'); ab.textContent = 'Use auto';
+  cal.append(cb, ab); sh.appendChild(cal);
+  const st = document.createElement('p'); st.className = 'note';
+  st.textContent = 'Calibrate plays 6 clicks through the speaker and times how late the mic hears them. Unplug headphones, turn the volume up, stay quiet.';
+  sh.appendChild(st);
+  cb.onclick = async () => { cb.disabled = true; await calibrate(st); cb.disabled = false; };
+  ab.onclick = () => { S.latencyMs = null; lat.value = ''; saveMeta(); st.textContent = 'Using the browser’s own estimate.'; };
+
+  field('Recording mode');
+  const rm = document.createElement('select');
+  rm.innerHTML = '<option value="replace">Replace: each take replaces the whole track</option><option value="punch">Punch-in: only the part you record is replaced</option>';
+  rm.value = S.recMode; rm.onchange = () => { S.recMode = rm.value; saveMeta(); }; sh.appendChild(rm);
+
+  field('Hear yourself while recording');
+  const mon = document.createElement('select');
+  mon.innerHTML = '<option value="0">Off (best for acoustic instruments and vocals)</option><option value="1">On (headphones only; for a USB interface or DI)</option>';
+  mon.value = S.monitor ? '1' : '0';
+  mon.onchange = () => { S.monitor = mon.value === '1'; if (monGain) monGain.gain.value = S.monitor ? 1 : 0; }; sh.appendChild(mon);
+
+  field('Click volume');
+  const cv = document.createElement('input'); cv.type = 'range'; cv.min = 0; cv.max = 1; cv.step = 0.05; cv.value = S.metroVol;
+  cv.oninput = () => { S.metroVol = +cv.value; if (metroOut) metroOut.gain.value = S.metroVol; saveMeta(); }; sh.appendChild(cv);
+
+  const done = document.createElement('div'); done.className = 'row'; const db = document.createElement('button'); db.textContent = 'Done'; db.onclick = closeSheet; done.appendChild(db); sh.appendChild(done);
+}
+
+/* ---------------- wiring ---------------- */
+$('#playBtn').addEventListener('click', () => { if (playing) stopTransport(); else startTransport(false); });
+$('#recBtn').addEventListener('click', () => { if (recording) stopTransport(); else startRecording(); });
+$('#homeBtn').addEventListener('click', async () => { if (playing) await stopTransport(); pos = 0; playFrom = 0; updateClock(); drawAll(); });
+$('#menuBtn').addEventListener('click', mainMenu);
+$('#addTrack').addEventListener('click', () => {
+  if (S.tracks.length >= MAX_TRACKS) return;
+  const t = newTrack(); S.tracks.push(t); nodesFor(t); renderTracks(); saveMeta();
+});
+$('#songName').addEventListener('input', e => { S.name = e.target.value; saveMeta(); });
+$('#tempoBtn').addEventListener('click', tempoMenu);
+$('#metroBtn').addEventListener('click', e => { S.metro = !S.metro; e.currentTarget.classList.toggle('on', S.metro); saveMeta(); });
+bindSeek($('#rulerWrap'));
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,select,textarea') || curSheet) return;
+  if (e.code === 'Space') { e.preventDefault(); $('#playBtn').click(); }
+  else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); $('#recBtn').click(); }
+});
+let rsz; window.addEventListener('resize', () => { clearTimeout(rsz); rsz = setTimeout(drawAll, 100); });
+
+document.addEventListener('visibilitychange', () => { if (!document.hidden && ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); });
+document.addEventListener('touchend', () => { if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); }, {passive:true});
+(() => {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  let dismissed = false; try { dismissed = localStorage.getItem('jp-tip') === '1'; } catch (e) {}
+  if (ios && !standalone && !dismissed) $('#installTip').classList.add('show');
+  $('#tipX').addEventListener('click', () => { $('#installTip').classList.remove('show'); try { localStorage.setItem('jp-tip', '1'); } catch (e) {} });
+})();
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+(async () => {
+  await loadSaved();
+  syncControls(); renderTracks();
+  if (!window.isSecureContext) toast('Open this app over https (your GitHub Pages link) so the mic works.', 6000);
+})();
+</script>
+</body>
+</html>
